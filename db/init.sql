@@ -106,6 +106,53 @@ CREATE TABLE skills_taxonomy (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- ==========================================
+-- Phase 3B: Institution Course Catalogs
+-- ==========================================
+CREATE TABLE institutions (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    slug VARCHAR(50) UNIQUE NOT NULL,
+    website_url TEXT,
+    catalog_url TEXT,
+    city VARCHAR(100),
+    province VARCHAR(100),
+    country VARCHAR(100),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE courses (
+    id SERIAL PRIMARY KEY,
+    institution_id INTEGER NOT NULL REFERENCES institutions(id),
+    course_code VARCHAR(50) NOT NULL,
+    subject_code VARCHAR(50),
+    course_number VARCHAR(20),
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    credits NUMERIC,
+    course_url TEXT,
+    source_url TEXT,
+    source_hash VARCHAR(64),
+    last_seen_at TIMESTAMP,
+    is_active BOOLEAN DEFAULT TRUE,
+    embedding VECTOR(768),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (institution_id, course_code)
+);
+
+CREATE TABLE course_skill_mapping (
+    course_id INTEGER NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
+    skill_taxonomy_id INTEGER NOT NULL REFERENCES skills_taxonomy(id),
+    confidence_score NUMERIC CHECK (confidence_score >= 0 AND confidence_score <= 1),
+    mapping_source VARCHAR(50) NOT NULL CHECK (mapping_source IN ('manual', 'keyword', 'llm_reviewed')),
+    rationale TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (course_id, skill_taxonomy_id)
+);
+
 CREATE TABLE job_profiles (
     id SERIAL PRIMARY KEY,
     job_title VARCHAR(255),
@@ -277,3 +324,11 @@ CREATE TABLE user_feedback (
 CREATE INDEX ON noc_codes USING hnsw (embedding vector_cosine_ops);
 CREATE INDEX ON skills_taxonomy USING hnsw (embedding vector_cosine_ops);
 CREATE INDEX ON job_profiles USING hnsw (embedding vector_cosine_ops);
+
+CREATE INDEX idx_courses_institution_id ON courses (institution_id);
+CREATE INDEX idx_courses_subject_code ON courses (subject_code);
+CREATE INDEX idx_courses_active ON courses (is_active);
+CREATE INDEX idx_course_skill_mapping_skill ON course_skill_mapping (skill_taxonomy_id);
+CREATE INDEX idx_courses_search ON courses USING gin (
+    to_tsvector('english', coalesce(title, '') || ' ' || coalesce(description, ''))
+);

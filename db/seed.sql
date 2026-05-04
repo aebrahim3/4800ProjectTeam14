@@ -58,6 +58,125 @@ INSERT INTO skills_taxonomy (skill_name, skill_category, skill_subcategory, skil
 ('DevOps', 'Infrastructure', 'Operations', 'DevOps practices and CI/CD pipelines', '["CI/CD", "Docker", "Kubernetes"]'::jsonb, TRUE, '["Intermediate", "Advanced"]'::jsonb, 10, 91.4, 8900, NOW(), NOW());
 
 -- ==========================================
+-- Phase 3B: Institution Course Catalogs
+-- ==========================================
+INSERT INTO institutions (name, slug, website_url, catalog_url, city, province, country, created_at, updated_at) VALUES
+('British Columbia Institute of Technology', 'bcit', 'https://www.bcit.ca', 'https://www.bcit.ca/course_subjects/computer-systems-comp/', 'Burnaby', 'British Columbia', 'Canada', NOW(), NOW()),
+('University of British Columbia', 'ubc', 'https://www.ubc.ca', 'https://vancouver.calendar.ubc.ca/course-descriptions/subject/cpscv', 'Vancouver', 'British Columbia', 'Canada', NOW(), NOW()),
+('Simon Fraser University', 'sfu', 'https://www.sfu.ca', 'https://www.sfu.ca/students/calendar/2026/summer/courses/cmpt/', 'Burnaby', 'British Columbia', 'Canada', NOW(), NOW())
+ON CONFLICT (slug) DO UPDATE SET
+    name = EXCLUDED.name,
+    website_url = EXCLUDED.website_url,
+    catalog_url = EXCLUDED.catalog_url,
+    city = EXCLUDED.city,
+    province = EXCLUDED.province,
+    country = EXCLUDED.country,
+    updated_at = NOW();
+
+CREATE TEMP TABLE staging_course_catalog (
+    institution_slug TEXT,
+    course_code TEXT,
+    subject_code TEXT,
+    course_number TEXT,
+    title TEXT,
+    description TEXT,
+    credits NUMERIC,
+    course_url TEXT,
+    source_url TEXT,
+    source_hash TEXT
+);
+
+COPY staging_course_catalog
+FROM '/docker-entrypoint-initdb.d/data/course_catalog_mvp.csv'
+WITH (FORMAT csv, HEADER true);
+
+INSERT INTO courses (
+    institution_id,
+    course_code,
+    subject_code,
+    course_number,
+    title,
+    description,
+    credits,
+    course_url,
+    source_url,
+    source_hash,
+    last_seen_at,
+    is_active,
+    created_at,
+    updated_at
+)
+SELECT
+    i.id,
+    s.course_code,
+    s.subject_code,
+    s.course_number,
+    s.title,
+    s.description,
+    s.credits,
+    s.course_url,
+    s.source_url,
+    COALESCE(NULLIF(s.source_hash, ''), md5(s.course_code || '|' || s.title || '|' || COALESCE(s.description, ''))),
+    NOW(),
+    TRUE,
+    NOW(),
+    NOW()
+FROM staging_course_catalog s
+JOIN institutions i ON i.slug = s.institution_slug
+ON CONFLICT (institution_id, course_code) DO UPDATE SET
+    subject_code = EXCLUDED.subject_code,
+    course_number = EXCLUDED.course_number,
+    title = EXCLUDED.title,
+    description = EXCLUDED.description,
+    credits = EXCLUDED.credits,
+    course_url = EXCLUDED.course_url,
+    source_url = EXCLUDED.source_url,
+    source_hash = EXCLUDED.source_hash,
+    last_seen_at = NOW(),
+    is_active = TRUE,
+    updated_at = NOW();
+
+CREATE TEMP TABLE staging_course_skill_mapping (
+    institution_slug TEXT,
+    course_code TEXT,
+    skill_name TEXT,
+    confidence_score NUMERIC,
+    mapping_source TEXT,
+    rationale TEXT
+);
+
+COPY staging_course_skill_mapping
+FROM '/docker-entrypoint-initdb.d/data/course_skill_mapping_mvp.csv'
+WITH (FORMAT csv, HEADER true);
+
+INSERT INTO course_skill_mapping (
+    course_id,
+    skill_taxonomy_id,
+    confidence_score,
+    mapping_source,
+    rationale,
+    created_at,
+    updated_at
+)
+SELECT
+    c.id,
+    st.id,
+    s.confidence_score,
+    s.mapping_source,
+    s.rationale,
+    NOW(),
+    NOW()
+FROM staging_course_skill_mapping s
+JOIN institutions i ON i.slug = s.institution_slug
+JOIN courses c ON c.institution_id = i.id AND c.course_code = s.course_code
+JOIN skills_taxonomy st ON st.skill_name = s.skill_name
+ON CONFLICT (course_id, skill_taxonomy_id) DO UPDATE SET
+    confidence_score = EXCLUDED.confidence_score,
+    mapping_source = EXCLUDED.mapping_source,
+    rationale = EXCLUDED.rationale,
+    updated_at = NOW();
+
+-- ==========================================
 -- Phase 3: NOC Codes (Canadian Job Classification)
 -- ==========================================
 INSERT INTO noc_codes (noc_code, noc_title, noc_description, skill_level, skill_type, main_duties, employment_requirements, related_job_titles, median_salary_cad, job_outlook, last_updated, created_at) VALUES
