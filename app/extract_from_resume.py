@@ -86,3 +86,134 @@ def extract_text_from_uploaded_pdf(file_bytes: bytes) -> str:
 
             return text
 
+        
+        
+        def extract_career_info_from_resume(resume_text: str) -> dict:
+            """
+            Passes raw resume text to an LLM to output structured career information in JSON format.
+            """
+
+            prompt = f"""
+            You are a resume parser. Extract all career-relevant information from the 
+            resume below.
+
+            Return ONLY a valid JSON object with these exact fields:
+            {{
+                "full_name": "string or null",
+                "email": "string or null",
+                "summary": "string or null",
+                "skills": ["list of technical or soft skills or null"],
+                "work_experience": [
+                {{
+                    "job_title": "job title or null",
+                    "company_name": "company name or null",
+                    "start_date": "string or null",
+                    "end_date": "string or null",
+                    "is_current": "boolean",
+                    "description": "key responsibilities and achievements or null"
+                }}
+                ],
+                "activity_scores": [
+                {{
+                    "getting_information_score": "0-5 or null",
+                    "identifying_objects_actions_and_events_score": "0-5 or null",
+                    "monitoring_processes_materials_or_surroundings_score": "0-5 or null",
+                    "inspecting_equipment_structures_or_materials_score": "0-5 or null",
+                    "estimating_quantifiable_characteristics_score": "0-5 or null",
+                    "judging_qualities_of_objects_services_or_people_score": "0-5 or null",
+                    "evaluating_information_compliance_with_standards_score": "0-5 or null",
+                    "processing_information_score": "0-5 or null",
+                    "analyzing_data_or_information_score": "0-5 or null",
+                    "making_decisions_and_solving_problems_score": "0-5 or null",
+                    "thinking_creatively_score": "0-5 or null",
+                    "updating_and_using_relevant_knowledge_score": "0-5 or null",
+                    "developing_objectives_and_strategies_score": "0-5 or null",
+                    "scheduling_work_and_activities_score": "0-5 or null",
+                    "organizing_planning_and_prioritizing_work_score": "0-5 or null",
+                    "performing_general_physical_activities_score": "0-5 or null",
+                    "handling_and_moving_objects_score": "0-5 or null",
+                    "controlling_machines_and_processes_score": "0-5 or null",
+                    "working_with_computers_score": "0-5 or null",
+                    "operating_vehicles_mechanized_devices_or_equipment_score": "0-5 or null",
+                    "drafting_laying_out_and_specifying_technical_devices_score": "0-5 or null",
+                    "repairing_and_maintaining_mechanical_equipment_score": "0-5 or null",
+                    "repairing_and_maintaining_electronic_equipment_score": "0-5 or null",
+                    "documenting_recording_information_score": "0-5 or null",
+                    "interpreting_meaning_of_information_for_others_score": "0-5 or null",
+                    "communicating_with_supervisors_peers_or_subordinates_score": "0-5 or null",
+                    "communicating_with_people_outside_organization_score": "0-5 or null",
+                    "establishing_and_maintaining_interpersonal_relationships_score": "0-5 or null",
+                    "assisting_and_caring_for_others_score": "0-5 or null",
+                    "selling_or_influencing_others_score": "0-5 or null",
+                    "resolving_conflicts_and_negotiating_with_others_score": "0-5 or null",
+                    "performing_for_or_working_directly_with_public_score": "0-5 or null",
+                    "coordinating_work_and_activities_of_others_score": "0-5 or null",
+                    "developing_and_building_teams_score": "0-5 or null",
+                    "training_and_teaching_others_score": "0-5 or null",
+                    "guiding_directing_and_motivating_subordinates_score": "0-5 or null",
+                    "coaching_and_developing_others_score": "0-5 or null",
+                    "providing_consultation_and_advice_to_others_score": "0-5 or null",
+                    "performing_administrative_activities_score": "0-5 or null",
+                    "staffing_organizational_units_score": "0-5 or null",
+                    "monitoring_and_controlling_resources_score": "0-5 or null"
+                }}
+                ],
+                "education": [
+                {{
+                    "degree_type": "degree or null",
+                    "field_of_study": "field of study or null",
+                    "institution_name": "institution name or null",
+                    "graduation_year": "string or null",
+                    "specialization": "string or null",
+                    "start_date": "string or null",
+                    "end_date": "string or null",
+                    "gpa": "grade point average or null",
+                    "is_current": "boolean",
+                    "description": "key details and achievements or null",
+                    "city_id": "city id or null",
+                    "created_at": "timestamp or null"
+                }}
+                ],
+                "marks": [
+                {{
+                    "administration_and_management_mark": "0-100 or null",
+                    "administrative_mark": "0-100 or null",
+                    "economics_and_accounting_mark": "0-100 or null",
+                    "sales_and_marketing_mark": "0-100 or null",
+                    "customer_and_personal_service_mark": "0-100 or null",
+                    "personnel_and_human_resources_mark": "0-100 or null",
+                    "production_and_processing_mark": "0-100 or null",
+                    "food_production_mark": "0-100 or null",
+                    "computers_and_electronics_mark": "0-100 or null",
+                    "engineering_and_technology_mark": "0-100 or null",
+                    "design_mark": "0-100 or null",
+                    "building_and_construction_mark": "0-100 or null",
+                    "mechanical_mark": "0-100 or null",
+                    "mathematics_mark": "0-100 or null",
+                    "physics_mark": "0-100 or null",
+                    "chemistry_mark": "0-100 or null",
+                    "biology_mark": "0-100 or null",
+                    "psychology_mark": "0-100 or null",
+                    "sociology_and_anthropology_mark": "0-100 or null",
+                    "geography_mark": "0-100 or null",
+                    "medicine_and_dentistry_mark": "0-100 or null",
+                    "therapy_and_counseling_mark": "0-100 or null",
+                    "education_and_training_mark": "0-100 or null",
+                    "english_language_mark": "0-100 or null",
+                    "foreign_language_mark": "0-100 or null",
+                    "fine_arts_mark": "0-100 or null",
+                    "history_and_archaeology_mark": "0-100 or null",
+                    "philosophy_and_theology_mark": "0-100 or null",
+                    "public_safety_and_security_mark": "0-100 or null",
+                    "law_and_government_mark": "0-100 or null",
+                    "telecommunications_mark": "0-100 or null",
+                    "communications_and_media_mark": "0-100 or null",
+                    "transportation_mark": "0-100 or null"
+            }}
+            ],
+            
+            }}
+
+
+
+
