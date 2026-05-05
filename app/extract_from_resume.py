@@ -209,10 +209,73 @@ def extract_text_from_uploaded_pdf(file_bytes: bytes) -> str:
                     "telecommunications_mark": "0-100 or null",
                     "communications_and_media_mark": "0-100 or null",
                     "transportation_mark": "0-100 or null"
+                }}
+                ],
+                "volunteering": [
+                {{
+                    "organization": "organization name or null",
+                    "position": "position or null",
+                    "start_date": "string or null",
+                    "end_date": "string or null",
+                    "description": "key details and achievements or null"
+                }}
+                ],
+                "certifications": [
+                {{
+                    "description": "certification details or null"
+                }}
+                ],
+                "languages": [
+                {{
+                    "language_name": "language name or null",
+                    "proficiency_level": "proficiency level or null"
+                }}
+                ],
+                "awards": [
+                {{
+                    "description": "key details and achievements or null"
+                }}
+                ]
             }}
-            ],
+
+            Rules:
+            - Return ONLY the JSON object, no preamble, no explanation, no 
+              markdown backticks
+            - If a field has no information, use null for strings or empty array [] for lists
+            - Be thorough - extract everything career-relevant
+            - For activity_scores, score each activity from 0 to 5 based on
+              evidence found in the resume:
+               0 = no evidence
+               1 = minimal evidence
+               2 = some evidence
+               3 = moderate evidence
+               4 = strong evidence
+               5 = exceptional evidence
+              If there is no evidence at all, return null.
+            - For marks, assign a score from 0 to 100 based on any percentages or letter grades mentioned in the resume.
+              If there is no evidence for a particular mark, return null.
+
             
-            }}
+            Resume:
+            {resume_text}
+            """
+
+              response = requests.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": LLM_MODEL,
+                    "messages": [{"role": "user", "content": prompt}],
+                    "max_tokens": 2000,
+                    "temperature": 0,  # Deterministic output
+                },
+                timeout=60,
+            )  
+
+            
 
 
 

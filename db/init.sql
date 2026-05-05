@@ -222,8 +222,6 @@ CREATE TABLE activity_scores (
     performing_administrative_activities_score NUMERIC,
     staffing_organizational_units_score NUMERIC,
     monitoring_and_controlling_resources_score NUMERIC,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE education_history (
@@ -236,8 +234,6 @@ CREATE TABLE education_history (
     start_date DATE,
     end_date DATE,
     gpa NUMERIC,
-    math_mark NUMERIC,
-
     is_current BOOLEAN,
     description TEXT,
     city_id INTEGER REFERENCES cities(id),
@@ -280,8 +276,35 @@ CREATE TABLE marks (
     telecommunications_mark NUMERIC,
     communications_and_media_mark NUMERIC,
     transportation_mark NUMERIC,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE volunteering (
+    id SERIAL PRIMARY KEY,
+    user_profile_id INTEGER REFERENCES user_profiles(id),
+    organization VARCHAR(255),
+    position VARCHAR(255),
+    start_date DATE,
+    end_date DATE,
+    description TEXT
+);
+
+CREATE TABLE certifications (
+    id SERIAL PRIMARY KEY,
+    user_profile_id INTEGER REFERENCES user_profiles(id),
+    description TEXT
+);
+
+CREATE TABLE languages (
+    id SERIAL PRIMARY KEY,
+    user_profile_id INTEGER REFERENCES user_profiles(id),
+    language_name VARCHAR(100),
+    proficiency_level VARCHAR(50)
+);
+
+CREATE TABLE awards (
+    id SERIAL PRIMARY KEY,
+    user_profile_id INTEGER REFERENCES user_profiles(id),
+    description TEXT
 );
 
 CREATE TABLE visi_assessments (
@@ -298,7 +321,7 @@ CREATE TABLE visi_assessments (
     completion_time_minutes INTEGER,
     is_current BOOLEAN DEFAULT TRUE,
     completed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+); 
 
 CREATE TABLE assessment_history (
     id SERIAL PRIMARY KEY,
