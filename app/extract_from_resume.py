@@ -23,13 +23,14 @@ app = FastAPI(
     description="API for parsing resumes and extracting structured information and returning JSON",
     version="1.0.0",)
 
-"""
-Helper function to extract text from uploaded PDF using pdfplumber
-Saves the uploaded file to a temporary location on the disk, extracts text, and then deletes the temporary file
-This approach is necessary because pdfplumber requires a file path to read the PDF, and it cannot directly read from bytes in memory
 
-"""
 def extract_text_from_uploaded_pdf(file_bytes: bytes) -> str:
+    """
+    Helper function to extract text from uploaded PDF using pdfplumber
+    Saves the uploaded file to a temporary location on the disk, extracts text, and then deletes the temporary file
+    This approach is necessary because pdfplumber requires a file path to read the PDF, and it cannot directly read from bytes in memory
+
+    """
     with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
         as tmp:
         tmp.write(file_bytes)
@@ -46,14 +47,14 @@ def extract_text_from_uploaded_pdf(file_bytes: bytes) -> str:
     return text.strip()
 
 
-    """
-    Helper function to extract text from scanned PDF. 
-    First, converts bytes to images using pdf2image, 
-    then uses OCR to extract text from each page image.
-
-    """
+    
 
     def extract_text_from_scanned_pdf(file_bytes: bytes) -> str:
+        """
+        Helper function to extract text from scanned PDF. 
+        First, converts bytes to images using pdf2image, 
+        then uses OCR to extract text from each page image.
+        """
         print("Parsing scanned PDF...")
 
         #Convert PDF pages to images
