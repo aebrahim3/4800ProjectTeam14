@@ -5,10 +5,30 @@ import os
 from pathlib import Path
 
 import psycopg2
-from psycopg2.extras import RealDictCursor
+from psycopg2.extras import Json, RealDictCursor
 
 
 DEFAULT_DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/myapp"
+COURSE_JSON_FIELDS = [
+    "onet_soc_codes",
+    "onet_skill_elements",
+    "onet_technology_skills",
+    "onet_knowledge_elements",
+    "onet_work_activities",
+    "onet_task_statements",
+]
+COURSE_OPTIONAL_FIELDS = [
+    "prerequisites",
+    "learning_outcomes",
+    "program_credential_association",
+    "credential_type",
+    "certification",
+    "course_level",
+    "delivery_mode",
+    "campus",
+    "term_availability",
+    "onet_alignment_notes",
+]
 INSTITUTIONS = {
     "bcit": {
         "name": "British Columbia Institute of Technology",
@@ -45,6 +65,32 @@ def source_hash(row):
 def read_csv(path):
     with path.open(newline="", encoding="utf-8") as handle:
         return list(csv.DictReader(handle))
+
+
+def json_value(row, field, default):
+    raw = row.get(field)
+    if not raw:
+        return Json(default)
+    import json
+
+    return Json(json.loads(raw))
+
+
+def normalize_course_row(row, institution_id):
+    normalized = dict(row)
+    normalized.update({field: row.get(field) or None for field in COURSE_OPTIONAL_FIELDS})
+    for field in COURSE_JSON_FIELDS:
+        normalized[field] = json_value(row, field, [])
+    normalized["sparse_features"] = json_value(row, "sparse_features", {})
+    normalized["onet_job_zone"] = row.get("onet_job_zone") or None
+    normalized.update(
+        {
+            "institution_id": institution_id,
+            "credits": row.get("credits") or None,
+            "source_hash": row.get("source_hash") or source_hash(row),
+        }
+    )
+    return normalized
 
 
 def upsert_institutions(conn):
@@ -90,6 +136,24 @@ def upsert_courses(conn, course_rows):
                     title,
                     description,
                     credits,
+                    prerequisites,
+                    learning_outcomes,
+                    program_credential_association,
+                    credential_type,
+                    certification,
+                    course_level,
+                    delivery_mode,
+                    campus,
+                    term_availability,
+                    onet_soc_codes,
+                    onet_skill_elements,
+                    onet_technology_skills,
+                    onet_knowledge_elements,
+                    onet_work_activities,
+                    onet_task_statements,
+                    onet_job_zone,
+                    onet_alignment_notes,
+                    sparse_features,
                     course_url,
                     source_url,
                     source_hash,
@@ -106,6 +170,24 @@ def upsert_courses(conn, course_rows):
                     %(title)s,
                     %(description)s,
                     %(credits)s,
+                    %(prerequisites)s,
+                    %(learning_outcomes)s,
+                    %(program_credential_association)s,
+                    %(credential_type)s,
+                    %(certification)s,
+                    %(course_level)s,
+                    %(delivery_mode)s,
+                    %(campus)s,
+                    %(term_availability)s,
+                    %(onet_soc_codes)s,
+                    %(onet_skill_elements)s,
+                    %(onet_technology_skills)s,
+                    %(onet_knowledge_elements)s,
+                    %(onet_work_activities)s,
+                    %(onet_task_statements)s,
+                    %(onet_job_zone)s,
+                    %(onet_alignment_notes)s,
+                    %(sparse_features)s,
                     %(course_url)s,
                     %(source_url)s,
                     %(source_hash)s,
@@ -120,6 +202,24 @@ def upsert_courses(conn, course_rows):
                     title = EXCLUDED.title,
                     description = EXCLUDED.description,
                     credits = EXCLUDED.credits,
+                    prerequisites = EXCLUDED.prerequisites,
+                    learning_outcomes = EXCLUDED.learning_outcomes,
+                    program_credential_association = EXCLUDED.program_credential_association,
+                    credential_type = EXCLUDED.credential_type,
+                    certification = EXCLUDED.certification,
+                    course_level = EXCLUDED.course_level,
+                    delivery_mode = EXCLUDED.delivery_mode,
+                    campus = EXCLUDED.campus,
+                    term_availability = EXCLUDED.term_availability,
+                    onet_soc_codes = EXCLUDED.onet_soc_codes,
+                    onet_skill_elements = EXCLUDED.onet_skill_elements,
+                    onet_technology_skills = EXCLUDED.onet_technology_skills,
+                    onet_knowledge_elements = EXCLUDED.onet_knowledge_elements,
+                    onet_work_activities = EXCLUDED.onet_work_activities,
+                    onet_task_statements = EXCLUDED.onet_task_statements,
+                    onet_job_zone = EXCLUDED.onet_job_zone,
+                    onet_alignment_notes = EXCLUDED.onet_alignment_notes,
+                    sparse_features = EXCLUDED.sparse_features,
                     course_url = EXCLUDED.course_url,
                     source_url = EXCLUDED.source_url,
                     source_hash = EXCLUDED.source_hash,
@@ -127,12 +227,7 @@ def upsert_courses(conn, course_rows):
                     is_active = TRUE,
                     updated_at = NOW()
                 """,
-                {
-                    **row,
-                    "institution_id": institution_id,
-                    "credits": row["credits"] or None,
-                    "source_hash": row.get("source_hash") or source_hash(row),
-                },
+                normalize_course_row(row, institution_id),
             )
 
 

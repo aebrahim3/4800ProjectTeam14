@@ -54,6 +54,7 @@ This branch includes the MVP data layer for local institution and course mapping
 - `course_skill_mapping` links courses to existing `skills_taxonomy` records.
 - `data/course_catalog_mvp.csv` contains the curated MVP course catalog.
 - `data/course_skill_mapping_mvp.csv` contains the curated skill mappings.
+- The course catalog CSV includes expanded school-sourced and O*NET-aligned fields such as prerequisites, learning outcomes, program/credential association, certifications, O*NET-SOC codes, O*NET skill elements, technology skills, work activities, task statements, job zone, and sparse features.
 
 On a fresh database volume, Docker Compose loads `db/init.sql`, then `db/seed.sql`, and imports the CSV files from `data/`.
 
@@ -70,4 +71,3 @@ python scripts/refresh_course_catalog.py --output data/scraped_course_catalog.cs
 ```
 
 The scraper intentionally avoids whole-site crawling. It only requests the configured BCIT, UBC, and SFU catalog pages with a delay between requests.
-

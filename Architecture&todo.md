@@ -32,7 +32,8 @@
 | Database | PostgreSQL + pgvector | Compatible |
 | Course tables | `institutions`, `courses`, `course_skill_mapping` exists | Compatible baseline |
 | Dense embedding column | `VECTOR(768)` | Needs migration for `bge-large-en-v1.5` |
-| Sparse skill features | Not yet stored | Needs `sparse_features JSONB` or array field |
+| Course employment fields | Course facts and O*NET alignment fields exist in CSV/schema | Compatible baseline for richer matching |
+| Sparse skill features | `courses.sparse_features JSONB` exists | Needs preprocessing population |
 | ML libraries | Not installed | Need `sentence-transformers`, `torch`, `xgboost`, `shap`, `numpy`, `pandas`, `scikit-learn` |
 | Scraping | BeautifulSoup connector script exists | Compatible with chosen strategy |
 | API | Only basic FastAPI endpoints exist | Need `/career/course-recommendations` in Service `:8004` |
@@ -97,6 +98,47 @@ Recommended future tables:
 - `catalog_sources`: institution-specific source URLs and parser config.
 - `catalog_ingestion_runs`: run status, counts, duration, and errors.
 - `course_snapshots`: optional historical copy of parsed course data for auditing.
+
+---
+
+## Expanded Course Catalog Fields
+
+The course CSV and `courses` table should store more than title, description, and URL. The model should not visit university pages at inference time, so the ingestion pipeline must persist the course facts and employment-alignment features needed for matching.
+
+### School-Sourced Course Facts
+
+These fields come from institution catalog pages, program pages, and course outlines:
+
+- `prerequisites`: prerequisite course codes or text.
+- `credits`: numeric course credits.
+- `program_credential_association`: related program, credential, certificate, diploma, degree, or specialization.
+- `credential_type`: normalized credential label such as `certificate`, `diploma`, `degree`, `microcredential`, or `continuing_education`.
+- `certification`: external certification explicitly prepared for or awarded, such as AWS, Cisco, Microsoft, CompTIA, PMP, or institution-issued certificate.
+- `learning_outcomes`: skills/outcomes stated by the school.
+- `course_level`: introductory, intermediate, advanced, undergraduate, graduate, continuing studies.
+- `delivery_mode`: in-person, online, hybrid, asynchronous, part-time.
+- `campus`: campus/location when available.
+- `term_availability`: terms or schedule availability when published.
+
+### O*NET-Aligned Employment Features
+
+O*NET occupation-side files show which employment features matter most for job matching. The official Skills file maps occupations to `Element ID`, `Element Name`, `Scale ID`, and `Data Value`; Technology Skills includes `Example`, `Hot Technology`, and `In Demand`; Education, Training, and Experience includes required education/training elements and percent-frequency categories; Job Zones describe the education, experience, and training level needed by an occupation.
+
+For course matching, store normalized O*NET alignment fields on each course:
+
+- `onet_soc_codes`: likely O*NET-SOC occupations addressed by the course.
+- `onet_skill_elements`: O*NET skill elements covered by the course, including element id/name and optional importance/level values.
+- `onet_technology_skills`: tools and technologies covered, including whether they are hot or in-demand for target occupations.
+- `onet_knowledge_elements`: knowledge domains covered by the course.
+- `onet_work_activities`: work activities practiced or prepared for.
+- `onet_task_statements`: relevant task statements when course outcomes map to job tasks.
+- `onet_job_zone`: expected job-zone level this course best supports.
+- `onet_alignment_notes`: human-readable audit note for why the course maps to those occupation features.
+
+This keeps the CSV useful for both:
+
+- **Dense matching**: `bge-large-en-v1.5` embeds rich course text.
+- **Sparse/employment matching**: XGBoost sees exact skill/tool/work-activity/job-zone features that employers care about.
 
 ---
 

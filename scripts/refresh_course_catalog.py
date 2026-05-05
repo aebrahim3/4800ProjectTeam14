@@ -40,6 +40,36 @@ SFU_CMPT_NUMBERS = [
     "839",
 ]
 SFU_CMPT_URL_TEMPLATE = "https://www.sfu.ca/students/calendar/2026/summer/courses/cmpt/{number}.html"
+COURSE_CATALOG_FIELDS = [
+    "institution_slug",
+    "course_code",
+    "subject_code",
+    "course_number",
+    "title",
+    "description",
+    "credits",
+    "prerequisites",
+    "learning_outcomes",
+    "program_credential_association",
+    "credential_type",
+    "certification",
+    "course_level",
+    "delivery_mode",
+    "campus",
+    "term_availability",
+    "onet_soc_codes",
+    "onet_skill_elements",
+    "onet_technology_skills",
+    "onet_knowledge_elements",
+    "onet_work_activities",
+    "onet_task_statements",
+    "onet_job_zone",
+    "onet_alignment_notes",
+    "sparse_features",
+    "course_url",
+    "source_url",
+    "source_hash",
+]
 
 
 def normalize_space(value):
@@ -189,24 +219,23 @@ def parse_sfu():
 
 
 def write_courses(rows, output_path):
-    fieldnames = [
-        "institution_slug",
-        "course_code",
-        "subject_code",
-        "course_number",
-        "title",
-        "description",
-        "credits",
-        "course_url",
-        "source_url",
-        "source_hash",
-    ]
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with output_path.open("w", newline="", encoding="utf-8") as handle:
-        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer = csv.DictWriter(handle, fieldnames=COURSE_CATALOG_FIELDS)
         writer.writeheader()
         for row in sorted(rows, key=lambda item: (item["institution_slug"], item["course_code"])):
-            row = {**row, "source_hash": hash_course(row)}
+            row = {
+                **{field: "" for field in COURSE_CATALOG_FIELDS},
+                "onet_soc_codes": "[]",
+                "onet_skill_elements": "[]",
+                "onet_technology_skills": "[]",
+                "onet_knowledge_elements": "[]",
+                "onet_work_activities": "[]",
+                "onet_task_statements": "[]",
+                "sparse_features": "{}",
+                **row,
+                "source_hash": hash_course(row),
+            }
             writer.writerow(row)
 
 
