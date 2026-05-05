@@ -69,3 +69,20 @@ def extract_text_from_uploaded_pdf(file_bytes: bytes) -> str:
 
         return text.strip()
 
+
+
+        def extract_text_from_pdf(file_bytes: bytes) -> str:
+            """
+            Main function to extract text from PDF.
+            First, tries to extract uploaded PDF.
+            If that doesn't work, it assumes it's a scanned PDF
+            and tries to extract text using OCR.
+            """
+
+            text = extract_text_from_uploaded_pdf(file_bytes)
+
+            if not text:
+                text = extract_text_from_scanned_pdf(file_bytes)
+
+            return text
+
