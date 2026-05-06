@@ -275,7 +275,12 @@ def extract_text_from_uploaded_pdf(file_bytes: bytes) -> str:
                 timeout=60,
             )  
 
+            if response.status_code != 200:
+                raise Exception(f"LLM error {response.status_code}: {response.text}")
+
             
+
+
 
 
 
