@@ -278,6 +278,62 @@ def extract_text_from_uploaded_pdf(file_bytes: bytes) -> str:
             if response.status_code != 200:
                 raise Exception(f"LLM error {response.status_code}: {response.text}")
 
+            // Extract the raw text response from the LLM
+            raw_output = response.json().get("choices", [{}])[0].get("message", {}).get("content", "")
+
+            return json.loads(raw_output)
+
+
+
+        @app.post("/parse_resume")
+        async def parse_resume(file: UploadFile = File(...)):
+            """
+            API endpoint to receive a resume PDF, extract text, and return structured career information in JSON format.
+            """
+
+            # Validate file type
+            if not file.filename.endswith(".pdf"):
+                raise HTTPException(status_code=400, detail="Only PDF files are supported.")
+
+            # Read uploaded file bytes
+            file_bytes = await file.read()
+
+            if not file_bytes:
+                raise HTTPException(status_code=400, detail="Uploaded file is empty.")
+
+            # Step 1: Extract text from PDF (handle both uploaded and scanned PDFs)
+            try:
+                resume_text = extract_text_from_pdf(file_bytes)
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=f"Error extracting text from PDF: {str(e)}")
+
+            if not resume_text:
+                raise HTTPException(status_code=400, detail="No text could be extracted from the PDF.")
+
+            # Step 2: Extract structured career information using LLM
+            try:
+                career_info = extract_career_info_from_resume(resume_text)
+            except json.JSONDecodeError:
+                raise HTTPException(status_code=500, detail="LLM returned invalid JSON. Try again.")
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=f"Error extracting career info from resume: {str(e)}")
+
+            return career_info
+
+
+
+        @app.get("/health")
+        def health_check():
+            """
+            Simple health check endpoint to verify that the API is running.
+            """
+            return {"status": "ok"}
+
+        
+
+
+
+
             
 
 
