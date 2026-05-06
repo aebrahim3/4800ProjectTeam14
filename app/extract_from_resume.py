@@ -8,6 +8,7 @@ import pytesseract
 from PIL import Image
 from pdf2image import convert_from_bytes
 from fastapi import FastAPI, File, UploadFile, HTTPException
+from dotenv import load_dotenv
 
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -35,14 +36,14 @@ def extract_text_from_uploaded_pdf(file_bytes: bytes) -> str:
         tmp.write(file_bytes)
         tmp_path = tmp.name
 
-        text = ""
+    text = ""
 
-        with pdfplumber.open(tmp_path) as pdf:
-            for page in pdf.pages:
-                page_text = page.extract_text()
-                if page_text:
-                    text += page_text + "\n"
-        os.remove(tmp_path)
+    with pdfplumber.open(tmp_path) as pdf:
+        for page in pdf.pages:
+            page_text = page.extract_text()
+            if page_text:
+                text += page_text + "\n"
+    os.remove(tmp_path)
     return text.strip()
 
 
