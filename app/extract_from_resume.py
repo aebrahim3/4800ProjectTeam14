@@ -10,10 +10,10 @@ from pdf2image import convert_from_bytes
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from dotenv import load_dotenv
 
-
+load_dotenv()  # Load environment variables from .env file
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-pytesseract.pytesseract.tesseract_cmd = os.path.join(BASE_DIR, "tesseract.exe")
-os.environ["TESSDATA_PREFIX"] = os.path.join(BASE_DIR, "tessdata")
+#pytesseract.pytesseract.tesseract_cmd = os.path.join(BASE_DIR, "tesseract.exe")
+#os.environ["TESSDATA_PREFIX"] = os.path.join(BASE_DIR, "tessdata")
 
 
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
