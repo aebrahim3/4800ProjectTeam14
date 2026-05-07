@@ -71,6 +71,7 @@ Use one connector per institution:
 - `BCITCourseCatalogConnector`
   - Reads allowlisted BCIT subject/program/course pages.
   - Parses course code, title, description, credits, prerequisites, credential metadata, campus, delivery mode, and intake terms when available.
+  - Optional enrichment reads compact course detail sections for learning outcomes and related credential/program names.
 
 - `UBCCourseCatalogConnector`
   - Reads Academic Calendar subject pages.
@@ -81,6 +82,7 @@ Use one connector per institution:
   - Avoids whole-site crawling and only follows course catalog URLs.
 
 The connector framework should not crawl the whole university website. It should keep a controlled allowlist of catalog/program listing URLs and parse only compact structured fields from those pages.
+For monthly deep refreshes, use the enrichment pass to fetch compact detail/program pages and store only extracted outcomes/credential names, not full page text.
 
 ### Update Semantics
 

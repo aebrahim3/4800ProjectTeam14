@@ -70,5 +70,11 @@ To regenerate a scraped catalog snapshot from the allowlisted official pages:
 python scripts/refresh_course_catalog.py --output data/scraped_course_catalog.csv
 ```
 
+To also fetch compact enrichment fields such as BCIT learning outcomes and credential/program mappings:
+
+```bash
+python scripts/refresh_course_catalog.py --enrich --output data/scraped_course_catalog.csv
+```
+
 The scraper intentionally avoids whole-site crawling. It only requests the configured BCIT, UBC, and SFU catalog pages with a delay between requests.
 The scraper is organized as institution-specific connectors under `scripts/course_catalog/connectors`, with shared CSV fields and source-hash logic.

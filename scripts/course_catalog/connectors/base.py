@@ -60,14 +60,36 @@ def build_source_hash(row):
         "description",
         "credits",
         "prerequisites",
+        "learning_outcomes",
         "program_credential_association",
         "credential_type",
+        "certification",
         "delivery_mode",
         "campus",
         "term_availability",
     ]
     raw = "|".join(normalize_space(row.get(field, "")) for field in hash_fields)
     return hashlib.md5(raw.encode("utf-8")).hexdigest()
+
+
+def merge_row_values(existing, updates):
+    for field, value in updates.items():
+        if field == "source_hash":
+            continue
+        if value and (not existing.get(field) or field in {"program_credential_association", "certification", "credential_type"}):
+            existing[field] = merge_text(existing.get(field, ""), value) if field in {"program_credential_association", "certification"} else value
+    existing["source_hash"] = build_source_hash(existing)
+    return existing
+
+
+def merge_text(current, incoming):
+    current_values = [normalize_space(part) for part in (current or "").split(";") if normalize_space(part)]
+    incoming_values = [normalize_space(part) for part in (incoming or "").split(";") if normalize_space(part)]
+    values = []
+    for value in current_values + incoming_values:
+        if value not in values:
+            values.append(value)
+    return "; ".join(values)
 
 
 class BaseCourseCatalogConnector(ABC):

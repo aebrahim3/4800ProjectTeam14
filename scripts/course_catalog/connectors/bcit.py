@@ -35,6 +35,8 @@ class BCITCourseCatalogConnector(BaseCourseCatalogConnector):
             for field, value in row.items():
                 if not existing.get(field) and value:
                     existing[field] = value
+                if field == "course_url" and "/courses/" in value:
+                    existing[field] = value
 
     def _program_metadata(self, soup):
         page_text = normalize_space(soup.get_text(" "))
