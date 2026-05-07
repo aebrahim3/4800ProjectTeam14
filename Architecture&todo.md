@@ -70,7 +70,7 @@ Use one connector per institution:
 
 - `BCITCourseCatalogConnector`
   - Reads allowlisted BCIT subject/program/course pages.
-  - Parses course code, title, description, credits, outline URL, prerequisites when available.
+  - Parses course code, title, description, credits, prerequisites, credential metadata, campus, delivery mode, and intake terms when available.
 
 - `UBCCourseCatalogConnector`
   - Reads Academic Calendar subject pages.
@@ -80,7 +80,7 @@ Use one connector per institution:
   - Reads official Calendar course pages and subject lists.
   - Avoids whole-site crawling and only follows course catalog URLs.
 
-The connector framework should not crawl the whole university website. It should keep a controlled allowlist of catalog entry URLs and parse only those pages plus linked course detail pages.
+The connector framework should not crawl the whole university website. It should keep a controlled allowlist of catalog/program listing URLs and parse only compact structured fields from those pages.
 
 ### Update Semantics
 
@@ -107,7 +107,7 @@ The course CSV and `courses` table should store more than title, description, an
 
 ### School-Sourced Course Facts
 
-These fields come from institution catalog pages, program pages, and course outlines:
+These fields come from institution catalog pages and program/course listing pages. Full course outline text should not be stored in the database.
 
 - `prerequisites`: prerequisite course codes or text.
 - `credits`: numeric course credits.
@@ -152,14 +152,14 @@ Actions:
 
 - Add preprocessing pipeline for courses after ingestion.
 - Use `bge-large-en-v1.5` to encode course text into dense embeddings.
-- Extract skill labels from course title, description, prerequisites, outline text, and learning outcomes.
+- Extract skill labels from course title, description, prerequisites, and learning outcomes when present.
 - Match extracted labels to `skills_taxonomy`.
 - Store sparse skill features for each course.
 
 Dense track:
 
 ```text
-course_text = title + description + prerequisites + outline_text + learning_outcomes
+course_text = title + description + prerequisites + learning_outcomes
 embedding = bge-large-en-v1.5(course_text)
 courses.embedding = embedding
 ```
@@ -179,7 +179,7 @@ Recommended schema changes:
 
 - Migrate `courses.embedding` to match selected model dimension, preferably `VECTOR(1024)` for `bge-large-en-v1.5`.
 - Add `courses.sparse_features JSONB`.
-- Add richer course fields over time: `prerequisites`, `learning_outcomes`, `outline_text`, `delivery_mode`, `campus`, `term_availability`.
+- Add richer course fields over time: `prerequisites`, `learning_outcomes`, `delivery_mode`, `campus`, `term_availability`.
 - Extend `course_skill_mapping` with feature metadata if needed:
   - `evidence_text`
   - `source_field`

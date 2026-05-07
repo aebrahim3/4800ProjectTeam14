@@ -71,3 +71,4 @@ python scripts/refresh_course_catalog.py --output data/scraped_course_catalog.cs
 ```
 
 The scraper intentionally avoids whole-site crawling. It only requests the configured BCIT, UBC, and SFU catalog pages with a delay between requests.
+The scraper is organized as institution-specific connectors under `scripts/course_catalog/connectors`, with shared CSV fields and source-hash logic.
