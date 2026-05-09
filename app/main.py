@@ -1,12 +1,19 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from sqlalchemy import create_engine, text
+from pydantic import BaseModel
+from typing import List
 import os
+from app.services.matching_service import find_closest_jobs
 
 app = FastAPI()
 
 # Database connection
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/myapp")
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@db:5432/myapp")
 engine = create_engine(DATABASE_URL)
+
+class MatchRequest(BaseModel):
+    vector: List[float]
+    limit: int = 5
 
 @app.get("/")
 async def root():
@@ -20,6 +27,21 @@ async def health():
         return {"status": "healthy", "database": "connected"}
     except Exception as e:
         return {"status": "unhealthy", "error": str(e)}
+
+@app.post("/api/match-jobs")
+async def match_jobs(request: MatchRequest):
+    """
+    Find closest O*NET jobs based on provided feature vector.
+    Vector should have 74 dimensions (33 Knowledge + 41 Work Activities).
+    """
+    if len(request.vector) != 74:
+        raise HTTPException(status_code=400, detail="Vector must have 74 dimensions.")
+    
+    try:
+        results = find_closest_jobs(engine, request.vector, request.limit)
+        return {"matches": results}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/llm")
 async def call_llm(prompt: str):

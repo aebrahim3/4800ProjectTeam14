@@ -272,8 +272,36 @@ CREATE TABLE user_feedback (
 );
 
 -- ==========================================
+-- Phase 6: O*NET Data for Job Matching
+-- ==========================================
+CREATE TABLE onet_occupations (
+    onetsoc_code VARCHAR(20) PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    description TEXT
+);
+
+CREATE TABLE onet_knowledge_elements (
+    element_id VARCHAR(20) PRIMARY KEY,
+    element_name VARCHAR(255) NOT NULL,
+    description TEXT
+);
+
+CREATE TABLE onet_work_activities_elements (
+    element_id VARCHAR(20) PRIMARY KEY,
+    element_name VARCHAR(255) NOT NULL,
+    description TEXT
+);
+
+CREATE TABLE onet_occupation_vectors (
+    onetsoc_code VARCHAR(20) PRIMARY KEY REFERENCES onet_occupations(onetsoc_code),
+    vector VECTOR(74), -- 33 Knowledge elements + 41 Work Activity elements
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ==========================================
 -- Vector Search Indexes (HNSW for performance)
 -- ==========================================
 CREATE INDEX ON noc_codes USING hnsw (embedding vector_cosine_ops);
 CREATE INDEX ON skills_taxonomy USING hnsw (embedding vector_cosine_ops);
 CREATE INDEX ON job_profiles USING hnsw (embedding vector_cosine_ops);
+CREATE INDEX ON onet_occupation_vectors USING hnsw (vector vector_cosine_ops);
