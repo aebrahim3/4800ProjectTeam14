@@ -178,6 +178,52 @@ CREATE TABLE work_experience (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE activity_scores (
+    id SERIAL PRIMARY KEY,
+    user_profile_id INTEGER REFERENCES user_profiles(id),
+    getting_information_score NUMERIC,
+    identifying_objects_actions_and_events_score NUMERIC,
+    monitoring_processes_materials_or_surroundings_score NUMERIC,
+    inspecting_equipment_structures_or_materials_score NUMERIC,
+    estimating_quantifiable_characteristics_score NUMERIC,
+    judging_qualities_of_objects_services_or_people_score NUMERIC,
+    evaluating_information_compliance_with_standards_score NUMERIC,
+    processing_information_score NUMERIC,
+    analyzing_data_or_information_score NUMERIC,
+    making_decisions_and_solving_problems_score NUMERIC,
+    thinking_creatively_score NUMERIC,
+    updating_and_using_relevant_knowledge_score NUMERIC,
+    developing_objectives_and_strategies_score NUMERIC,
+    scheduling_work_and_activities_score NUMERIC,
+    organizing_planning_and_prioritizing_work_score NUMERIC,
+    performing_general_physical_activities_score NUMERIC,
+    handling_and_moving_objects_score NUMERIC,
+    controlling_machines_and_processes_score NUMERIC,
+    working_with_computers_score NUMERIC,
+    operating_vehicles_mechanized_devices_or_equipment_score NUMERIC,
+    drafting_laying_out_and_specifying_technical_devices_score NUMERIC,
+    repairing_and_maintaining_mechanical_equipment_score NUMERIC,
+    repairing_and_maintaining_electronic_equipment_score NUMERIC,
+    documenting_recording_information_score NUMERIC,
+    interpreting_meaning_of_information_for_others_score NUMERIC,
+    communicating_with_supervisors_peers_or_subordinates_score NUMERIC,
+    communicating_with_people_outside_organization_score NUMERIC,
+    establishing_and_maintaining_interpersonal_relationships_score NUMERIC,
+    assisting_and_caring_for_others_score NUMERIC,
+    selling_or_influencing_others_score NUMERIC,
+    resolving_conflicts_and_negotiating_with_others_score NUMERIC,
+    performing_for_or_working_directly_with_public_score NUMERIC,
+    coordinating_work_and_activities_of_others_score NUMERIC,
+    developing_and_building_teams_score NUMERIC,
+    training_and_teaching_others_score NUMERIC,
+    guiding_directing_and_motivating_subordinates_score NUMERIC,
+    coaching_and_developing_others_score NUMERIC,
+    providing_consultation_and_advice_to_others_score NUMERIC,
+    performing_administrative_activities_score NUMERIC,
+    staffing_organizational_units_score NUMERIC,
+    monitoring_and_controlling_resources_score NUMERIC,
+);
+
 CREATE TABLE education_history (
     id SERIAL PRIMARY KEY,
     user_profile_id INTEGER REFERENCES user_profiles(id),
@@ -194,6 +240,73 @@ CREATE TABLE education_history (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE marks (
+    id SERIAL PRIMARY KEY,
+    user_profile_id INTEGER REFERENCES user_profiles(id),
+    administration_and_management_mark NUMERIC,
+    administrative_mark NUMERIC,
+    economics_and_accounting_mark NUMERIC,
+    sales_and_marketing_mark NUMERIC,
+    customer_and_personal_service_mark NUMERIC,
+    personnel_and_human_resources_mark NUMERIC,
+    production_and_processing_mark NUMERIC,
+    food_production_mark NUMERIC,
+    computers_and_electronics_mark NUMERIC,
+    engineering_and_technology_mark NUMERIC,
+    design_mark NUMERIC,
+    building_and_construction_mark NUMERIC,
+    mechanical_mark NUMERIC,
+    mathematics_mark NUMERIC,
+    physics_mark NUMERIC,
+    chemistry_mark NUMERIC,
+    biology_mark NUMERIC,
+    psychology_mark NUMERIC,
+    sociology_and_anthropology_mark NUMERIC,
+    geography_mark NUMERIC,
+    medicine_and_dentistry_mark NUMERIC,
+    therapy_and_counseling_mark NUMERIC,
+    education_and_training_mark NUMERIC,
+    english_language_mark NUMERIC,
+    foreign_language_mark NUMERIC,
+    fine_arts_mark NUMERIC,
+    history_and_archaeology_mark NUMERIC,
+    philosophy_and_theology_mark NUMERIC,
+    public_safety_and_security_mark NUMERIC,
+    law_and_government_mark NUMERIC,
+    telecommunications_mark NUMERIC,
+    communications_and_media_mark NUMERIC,
+    transportation_mark NUMERIC,
+);
+
+CREATE TABLE volunteering (
+    id SERIAL PRIMARY KEY,
+    user_profile_id INTEGER REFERENCES user_profiles(id),
+    organization VARCHAR(255),
+    position VARCHAR(255),
+    start_date DATE,
+    end_date DATE,
+    description TEXT
+);
+
+CREATE TABLE certifications (
+    id SERIAL PRIMARY KEY,
+    user_profile_id INTEGER REFERENCES user_profiles(id),
+    description TEXT
+);
+
+CREATE TABLE languages (
+    id SERIAL PRIMARY KEY,
+    user_profile_id INTEGER REFERENCES user_profiles(id),
+    language_name VARCHAR(100),
+    proficiency_level VARCHAR(50)
+);
+
+CREATE TABLE awards (
+    id SERIAL PRIMARY KEY,
+    user_profile_id INTEGER REFERENCES user_profiles(id),
+    description TEXT
+);
+
 CREATE TABLE visi_assessments (
     id SERIAL PRIMARY KEY,
     user_id INTEGER REFERENCES users(id),
@@ -208,7 +321,7 @@ CREATE TABLE visi_assessments (
     completion_time_minutes INTEGER,
     is_current BOOLEAN DEFAULT TRUE,
     completed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+); 
 
 CREATE TABLE assessment_history (
     id SERIAL PRIMARY KEY,
