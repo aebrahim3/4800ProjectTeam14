@@ -2,6 +2,7 @@ import argparse
 import csv
 import hashlib
 import os
+import re
 from pathlib import Path
 
 import psycopg2
@@ -9,6 +10,8 @@ from psycopg2.extras import Json, RealDictCursor
 
 
 DEFAULT_DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/myapp"
+DEFAULT_FEATURE_MODEL_NAME = "BAAI/bge-large-en-v1.5"
+DEFAULT_FEATURE_BATCH_SIZE = 16
 COURSE_JSON_FIELDS = [
     "onet_soc_codes",
     "onet_skill_elements",
@@ -74,6 +77,11 @@ def json_value(row, field, default):
     import json
 
     return Json(json.loads(raw))
+
+
+def feature_key(skill_name):
+    key = re.sub(r"[^A-Za-z0-9]+", "_", skill_name.strip().lower())
+    return key.strip("_")
 
 
 def normalize_course_row(row, institution_id):
@@ -255,14 +263,22 @@ def upsert_mappings(conn, mapping_rows):
                     skill_taxonomy_id,
                     confidence_score,
                     mapping_source,
+                    feature_key,
+                    source_fields,
+                    evidence_text,
+                    matched_aliases,
                     rationale,
                     created_at,
                     updated_at
                 )
-                VALUES (%s, %s, %s, %s, %s, NOW(), NOW())
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
                 ON CONFLICT (course_id, skill_taxonomy_id) DO UPDATE SET
                     confidence_score = EXCLUDED.confidence_score,
                     mapping_source = EXCLUDED.mapping_source,
+                    feature_key = EXCLUDED.feature_key,
+                    source_fields = EXCLUDED.source_fields,
+                    evidence_text = EXCLUDED.evidence_text,
+                    matched_aliases = EXCLUDED.matched_aliases,
                     rationale = EXCLUDED.rationale,
                     updated_at = NOW()
                 """,
@@ -271,6 +287,10 @@ def upsert_mappings(conn, mapping_rows):
                     skill_id,
                     row["confidence_score"],
                     row["mapping_source"],
+                    feature_key(row["skill_name"]),
+                    Json(["import_mapping"]),
+                    row["rationale"],
+                    Json([row["skill_name"]]),
                     row["rationale"],
                 ),
             )
@@ -281,7 +301,15 @@ def main():
     parser.add_argument("--courses", default="data/course_catalog_mvp.csv")
     parser.add_argument("--mappings", default="data/course_skill_mapping_mvp.csv")
     parser.add_argument("--database-url", default=os.getenv("DATABASE_URL", DEFAULT_DATABASE_URL))
+    parser.add_argument("--preprocess-features", action="store_true")
+    parser.add_argument("--feature-model-name", default=DEFAULT_FEATURE_MODEL_NAME)
+    parser.add_argument("--feature-batch-size", type=int, default=DEFAULT_FEATURE_BATCH_SIZE)
+    parser.add_argument("--feature-skip-embeddings", action="store_true")
+    parser.add_argument("--feature-skip-sparse", action="store_true")
     args = parser.parse_args()
+
+    if args.preprocess_features and args.feature_skip_embeddings and args.feature_skip_sparse:
+        parser.error("At least one preprocessing track must be enabled.")
 
     course_rows = read_csv(Path(args.courses))
     mapping_rows = read_csv(Path(args.mappings))
@@ -292,6 +320,17 @@ def main():
         upsert_mappings(conn, mapping_rows)
 
     print(f"Imported {len(course_rows)} courses and {len(mapping_rows)} course-skill mappings.")
+
+    if args.preprocess_features:
+        from preprocess_course_features import preprocess_course_features
+
+        preprocess_course_features(
+            database_url=args.database_url,
+            model_name=args.feature_model_name,
+            batch_size=args.feature_batch_size,
+            skip_embeddings=args.feature_skip_embeddings,
+            skip_sparse=args.feature_skip_sparse,
+        )
 
 
 if __name__ == "__main__":

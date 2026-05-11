@@ -64,6 +64,24 @@ To import or refresh the course seed data against an existing database:
 python scripts/import_course_data.py
 ```
 
+After applying `db/migrations/001_course_dual_features.sql`, run the dual-track feature preprocessor to populate course sparse features and BGE embeddings:
+
+```bash
+python scripts/preprocess_course_features.py
+```
+
+For a quick sparse-only smoke test without downloading the BGE model:
+
+```bash
+python scripts/preprocess_course_features.py --skip-embeddings --limit 5
+```
+
+To import data and then run preprocessing in one command:
+
+```bash
+python scripts/import_course_data.py --preprocess-features
+```
+
 To regenerate a scraped catalog snapshot from the allowlisted official pages:
 
 ```bash

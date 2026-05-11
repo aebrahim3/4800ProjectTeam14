@@ -226,6 +226,10 @@ INSERT INTO course_skill_mapping (
     skill_taxonomy_id,
     confidence_score,
     mapping_source,
+    feature_key,
+    source_fields,
+    evidence_text,
+    matched_aliases,
     rationale,
     created_at,
     updated_at
@@ -235,6 +239,10 @@ SELECT
     st.id,
     s.confidence_score,
     s.mapping_source,
+    trim(both '_' from lower(regexp_replace(st.skill_name, '[^A-Za-z0-9]+', '_', 'g'))),
+    '["seed_mapping"]'::jsonb,
+    s.rationale,
+    jsonb_build_array(st.skill_name),
     s.rationale,
     NOW(),
     NOW()
@@ -245,6 +253,10 @@ JOIN skills_taxonomy st ON st.skill_name = s.skill_name
 ON CONFLICT (course_id, skill_taxonomy_id) DO UPDATE SET
     confidence_score = EXCLUDED.confidence_score,
     mapping_source = EXCLUDED.mapping_source,
+    feature_key = EXCLUDED.feature_key,
+    source_fields = EXCLUDED.source_fields,
+    evidence_text = EXCLUDED.evidence_text,
+    matched_aliases = EXCLUDED.matched_aliases,
     rationale = EXCLUDED.rationale,
     updated_at = NOW();
 

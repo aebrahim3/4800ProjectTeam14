@@ -20,9 +20,11 @@
 当前 repo 已具备：
 
 - FastAPI + SQLAlchemy + PostgreSQL 16 + pgvector。
-- `courses.embedding VECTOR(768)` 字段，用于课程语义向量。
-- `course_skill_mapping` 表，用于把课程映射到 `skills_taxonomy`。
-- `scripts/import_course_data.py`，用于把 curated CSV 导入数据库。
+- `courses.embedding VECTOR(1024)` 字段，用于 `bge-large-en-v1.5` 课程语义向量。
+- `courses.sparse_features JSONB` 字段，用于课程 one-hot skill feature。
+- `course_skill_mapping` 表，用于把课程映射到 `skills_taxonomy`，并保存 sparse feature evidence。
+- `scripts/import_course_data.py`，用于把 curated CSV 导入数据库，可选触发 feature preprocessing。
+- `scripts/preprocess_course_features.py`，用于离线生成 dense embedding 和 sparse feature。
 - `scripts/refresh_course_catalog.py`，使用 connector framework + BeautifulSoup，从 allowlisted official pages 定向刷新课程 catalog snapshot。
 
 兼容性检查：
@@ -31,14 +33,14 @@
 |------|---------------|-----------------------------|
 | Database | PostgreSQL + pgvector | Compatible |
 | Course tables | `institutions`, `courses`, `course_skill_mapping` exists | Compatible baseline |
-| Dense embedding column | `VECTOR(768)` | Needs migration for `bge-large-en-v1.5` |
+| Dense embedding column | `VECTOR(1024)` | Compatible with `bge-large-en-v1.5` |
 | Course employment fields | Course facts and O*NET alignment fields exist in CSV/schema | Compatible baseline for richer matching |
-| Sparse skill features | `courses.sparse_features JSONB` exists | Needs preprocessing population |
-| ML libraries | Not installed | Need `sentence-transformers`, `torch`, `xgboost`, `shap`, `numpy`, `pandas`, `scikit-learn` |
+| Sparse skill features | `courses.sparse_features JSONB` exists | Populated by offline preprocessor |
+| ML libraries | Embedding dependencies added | XGBoost/SHAP dependencies still needed in sub-tasks 4-5 |
 | Scraping | BeautifulSoup connector script exists | Compatible with chosen strategy |
 | API | Only basic FastAPI endpoints exist | Need `/career/course-recommendations` in Service `:8004` |
 
-Note: `bge-large-en-v1.5` commonly outputs **1024-dimensional embeddings**. The current `VECTOR(768)` schema only fits a 768-dim model such as `bge-base-en-v1.5`. Since the selected model is `bge-large-en-v1.5`, sub-task 3 should migrate relevant embedding columns to `VECTOR(1024)` unless the team intentionally switches to a 768-dim embedding model.
+Note: `bge-large-en-v1.5` outputs **1024-dimensional embeddings**, so the course, skill, job, and NOC embedding columns now use `VECTOR(1024)`.
 
 ---
 

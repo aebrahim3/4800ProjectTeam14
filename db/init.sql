@@ -84,7 +84,7 @@ CREATE TABLE noc_codes (
     related_job_titles JSONB,
     median_salary_cad NUMERIC,
     job_outlook VARCHAR(100),
-    embedding VECTOR(768),
+    embedding VECTOR(1024),
     last_updated TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -101,7 +101,7 @@ CREATE TABLE skills_taxonomy (
     learning_time_weeks INTEGER,
     demand_score NUMERIC,
     salary_impact NUMERIC,
-    embedding VECTOR(768),
+    embedding VECTOR(1024),
     last_updated TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -154,7 +154,10 @@ CREATE TABLE courses (
     source_hash VARCHAR(64),
     last_seen_at TIMESTAMP,
     is_active BOOLEAN DEFAULT TRUE,
-    embedding VECTOR(768),
+    embedding VECTOR(1024),
+    embedding_model VARCHAR(100),
+    embedding_updated_at TIMESTAMP,
+    sparse_features_updated_at TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (institution_id, course_code)
@@ -165,6 +168,10 @@ CREATE TABLE course_skill_mapping (
     skill_taxonomy_id INTEGER NOT NULL REFERENCES skills_taxonomy(id),
     confidence_score NUMERIC CHECK (confidence_score >= 0 AND confidence_score <= 1),
     mapping_source VARCHAR(50) NOT NULL CHECK (mapping_source IN ('manual', 'keyword', 'llm_reviewed')),
+    feature_key VARCHAR(100),
+    source_fields JSONB DEFAULT '[]'::jsonb,
+    evidence_text TEXT,
+    matched_aliases JSONB DEFAULT '[]'::jsonb,
     rationale TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -189,7 +196,7 @@ CREATE TABLE job_profiles (
     noc_code VARCHAR(20) REFERENCES noc_codes(noc_code),
     job_source VARCHAR(100),
     market_demand VARCHAR(100),
-    embedding VECTOR(768),
+    embedding VECTOR(1024),
     last_updated TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -339,9 +346,10 @@ CREATE TABLE user_feedback (
 -- ==========================================
 -- Vector Search Indexes (HNSW for performance)
 -- ==========================================
-CREATE INDEX ON noc_codes USING hnsw (embedding vector_cosine_ops);
-CREATE INDEX ON skills_taxonomy USING hnsw (embedding vector_cosine_ops);
-CREATE INDEX ON job_profiles USING hnsw (embedding vector_cosine_ops);
+CREATE INDEX noc_codes_embedding_idx ON noc_codes USING hnsw (embedding vector_cosine_ops);
+CREATE INDEX skills_taxonomy_embedding_idx ON skills_taxonomy USING hnsw (embedding vector_cosine_ops);
+CREATE INDEX job_profiles_embedding_idx ON job_profiles USING hnsw (embedding vector_cosine_ops);
+CREATE INDEX idx_courses_embedding ON courses USING hnsw (embedding vector_cosine_ops);
 
 CREATE INDEX idx_courses_institution_id ON courses (institution_id);
 CREATE INDEX idx_courses_subject_code ON courses (subject_code);
