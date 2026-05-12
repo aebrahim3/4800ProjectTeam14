@@ -27,6 +27,7 @@
    - Build and start the PostgreSQL database container
    - Build and start the FastAPI application container
    - The API will be available at `http://localhost:8000`
+   - The recommendation API will be available at `http://localhost:8004`
 
 2. **Check the application health:**
    ```bash
@@ -44,6 +45,7 @@
 - `GET /` - Health check endpoint (returns "Hello World")
 - `GET /health` - Database connection health check
 - `POST /api/llm` - Call OpenRouter LLM API (requires OPENROUTER_API_KEY)
+- `POST /career/course-recommendations` - Hybrid course recommendations on service port `8004`
 
 ## Institution Course Catalog Data
 
@@ -80,6 +82,30 @@ To import data and then run preprocessing in one command:
 
 ```bash
 python scripts/import_course_data.py --preprocess-features
+```
+
+## Hybrid Course Recommendation API
+
+The recommender service loads an existing XGBoost model from `COURSE_RANKER_MODEL_PATH`, defaulting to `models/course_ranker.json`. The model must use this feature order:
+
+```text
+dense_similarity, skill_hit_count, credits, is_local
+```
+
+If the model file is missing or cannot be loaded, the API uses a deterministic rule fallback and returns `model_version: "rule_fallback"`.
+
+Start the database and recommendation service:
+
+```bash
+docker-compose up -d db recommender
+```
+
+Example request:
+
+```bash
+curl -X POST http://localhost:8004/career/course-recommendations \
+  -H "Content-Type: application/json" \
+  -d '{"user_id":1,"skill_gaps":["AWS","Python","Agile"],"preferred_location":"British Columbia","limit":3}'
 ```
 
 To regenerate a scraped catalog snapshot from the allowlisted official pages:

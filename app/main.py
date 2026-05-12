@@ -2,11 +2,15 @@ from fastapi import FastAPI
 from sqlalchemy import create_engine, text
 import os
 
+from app.recommendations import router as recommendations_router
+
 app = FastAPI()
 
 # Database connection
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/myapp")
 engine = create_engine(DATABASE_URL)
+app.state.engine = engine
+app.include_router(recommendations_router)
 
 @app.get("/")
 async def root():
