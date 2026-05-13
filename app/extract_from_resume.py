@@ -185,8 +185,8 @@ Return ONLY a valid JSON object with these exact fields:
         "description": "key details and achievements or null"
     }}
     ],
-    "personality_scores": [
-    {{
+    "personality_scores": 
+    {
         "achievement_effort_score": "1-5 or null",
         "adaptability_flexibility_score": "1-5 or null",
         "stress_tolerance_score": "1-5 or null",
@@ -203,8 +203,7 @@ Return ONLY a valid JSON object with these exact fields:
         "accountability_score": "1-5 or null",
         "competitive_drive_score": "1-5 or null",
         "charisma_score": "1-5 or null"
-    }}
-    ],
+    },
     "volunteering": [
     {{
         "organization": "organization name or null",
