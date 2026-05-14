@@ -366,6 +366,9 @@ class AssessmentResponse(BaseModel):
     Student submits:
     - profile: the full JSON from resume extraction (with TBD personality scores)
     - responses: a dict of question_id -> likert score (1-5)
+    - Outside this file, we will specify what values profile and responses
+    store. Profile stores the full JSON output from resume extraction, and responses 
+    stores a dict of question_id -> likert score (1-5). 
  
     Example:
     {
@@ -395,7 +398,89 @@ def score_responses(responses: dict[int, int]) -> dict[str, float | None]:
     # Step 1: Group responses by trait
     trait_scores: dict[str, list[float]] = {trait: [] for trait in TRAIT_FIELD_MAP}
 
-    if 
+    for question in QUESTIONS:
+        q_id = question["id"]
+        trait = question["trait"]
+        direction = question["direction"]
+
+        if q_id in responses:
+            score = responses[q_id]
+            if direction == "negative":
+                score = 6 - score  # Reverse score for negative questions
+            trait_scores[trait].append(score)
+
+        else:
+            continue
+
+    # Step 2: Average scores for each trait
+    result = {}
+    for trait, key in TRAIT_FIELD_MAP.items():
+        scores = trait_scores[trait]
+        if scores:
+            avg_score = round(sum(scores) / len(scores), 2)
+            result[key] = avg_score
+        else:
+            result[key] = None  # No responses for this trait
+
+    return result
+
+# ============================
+# API Endpoints
+# ============================
+@app.get("/questions")
+def get_questions():
+    """
+    Returns the list of assessment questions.
+    """
+    return {"questions": 
+            [
+     {{
+        "id": question["id"],
+        "text": question["text"]
+     }} for question in QUESTIONS
+     ]}
+
+@app.post("/assess")
+def assess(assessment: AssessmentResponse):
+    """
+    Accepts the resume extraction profile JSON and student Likert responses.
+    Scores the responses and replaces TBD personality scores in the profile.
+ 
+    Input:
+    {
+        "profile": { ...full resume JSON with TBD personality scores... },
+        "responses": { "1": 4, "2": 5, "3": 2, ... }
+    }
+ 
+    Output:
+        Complete profile JSON with personality_scores filled in.
+    """
+    try:
+        scores = score_responses(assessment.responses)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    
+    # Take the profile from resume extraction
+    # and replace TBD personality scores with real scored values
+
+    profile = assessment.profile
+    profile["personality_scores"] = scores
+
+    return profile
+
+
+# ============================
+# Health Check Endpoint
+# ============================
+@app.get("/health")
+def health_check():
+    """
+    Simple endpoint to check if the service is running.
+    """
+    return {"status": "ok"}
+
+
+
 
 
 
