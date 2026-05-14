@@ -434,10 +434,10 @@ def get_questions():
     """
     return {"questions": 
             [
-     {{
+     {
         "id": question["id"],
         "text": question["text"]
-     }} for question in QUESTIONS
+     } for question in QUESTIONS
      ]}
 
 @app.post("/assess")
