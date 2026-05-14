@@ -7,6 +7,7 @@ import pytesseract
 
 from pdf2image import convert_from_bytes
 from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 
 
 # ==========================================
@@ -29,6 +30,12 @@ app = FastAPI(
     version="1.0.0",
 )
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # restrict to your Blazor URL in production
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # ==========================================
 # Step 1a: Extract text from text-based PDF

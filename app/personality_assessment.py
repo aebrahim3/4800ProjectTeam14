@@ -31,11 +31,19 @@ uvicorn personality_assessment:app --reload --port 8003
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(
     title="Personality Assessment API",
     description="API for assessing personality traits based on user responses.",
     version="1.0.0"
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 LIKERT_SCALE = {
