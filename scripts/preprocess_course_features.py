@@ -15,7 +15,7 @@ except ImportError:
     RealDictCursor = None
 
 
-DEFAULT_DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/myapp"
+DEFAULT_DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/careerMatchingEngine"
 DEFAULT_MODEL_NAME = "BAAI/bge-large-en-v1.5"
 DEFAULT_EMBEDDING_DIMENSION = 1024
 DEFAULT_BATCH_SIZE = 16

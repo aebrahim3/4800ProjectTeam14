@@ -9,7 +9,7 @@ import psycopg2
 from psycopg2.extras import Json, RealDictCursor
 
 
-DEFAULT_DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/myapp"
+DEFAULT_DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/careerMatchingEngine"
 DEFAULT_FEATURE_MODEL_NAME = "BAAI/bge-large-en-v1.5"
 DEFAULT_FEATURE_BATCH_SIZE = 16
 COURSE_JSON_FIELDS = [

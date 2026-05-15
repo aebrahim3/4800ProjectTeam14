@@ -60,6 +60,21 @@ This branch includes the MVP data layer for local institution and course mapping
 
 On a fresh database volume, Docker Compose loads `db/init.sql`, then `db/seed.sql`, and imports the CSV files from `data/`.
 
+If an existing Docker volume was created before `POSTGRES_DB` was set to `careerMatchingEngine`, verify the active database before running migrations:
+
+```bash
+docker compose exec db psql -U postgres -d careerMatchingEngine -c "\dt"
+```
+
+If `courses` and `course_skill_mapping` are missing, that database has not been initialized with the project schema. For local development, the simplest clean reset is:
+
+```bash
+docker compose down -v
+docker compose up -d db recommender
+```
+
+This deletes the local PostgreSQL volume and recreates `careerMatchingEngine` from `db/init.sql` and `db/seed.sql`.
+
 To import or refresh the course seed data against an existing database:
 
 ```bash

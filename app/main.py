@@ -7,7 +7,7 @@ from app.recommendations import router as recommendations_router
 app = FastAPI()
 
 # Database connection
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/myapp")
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/careerMatchingEngine")
 engine = create_engine(DATABASE_URL)
 app.state.engine = engine
 app.include_router(recommendations_router)
