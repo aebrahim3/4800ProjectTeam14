@@ -10,11 +10,13 @@ from app.recommendations import (
     TaxonomySkill,
     apply_zero_hit_penalty,
     build_feature_row,
+    build_ranking_signals,
     build_shap_contributions,
     build_shap_explanation,
     compute_skill_matches,
     generate_recommendations,
     get_ranker_model,
+    hybrid_nn_score,
     load_embedding_model,
     load_xgboost_model,
     normalize_skill_gaps,
@@ -134,77 +136,94 @@ class CourseRecommendationLogicTests(unittest.TestCase):
         self.assertGreaterEqual(first, 0)
         self.assertLessEqual(first, 1)
 
-    def test_generate_recommendations_ranks_deterministically_with_model_scores(self):
+    def test_hybrid_nn_score_uses_stable_weights(self):
+        feature_row = [0.8, 2.0, 3.0, 1.0]
+
+        signals = build_ranking_signals(feature_row, requested_skill_count=4)
+
+        self.assertEqual(signals["dense_similarity_weight"], 0.6)
+        self.assertEqual(signals["skill_coverage_weight"], 0.3)
+        self.assertEqual(signals["is_local_weight"], 0.07)
+        self.assertEqual(signals["credit_score_weight"], 0.03)
+        self.assertEqual(signals["skill_coverage"], 0.5)
+        self.assertEqual(signals["credit_score"], 0.5)
+        self.assertFalse(signals["zero_hit_penalty_applied"])
+        self.assertAlmostEqual(hybrid_nn_score(feature_row, 4), 0.715)
+
+    def test_hybrid_nn_zero_hit_penalty_reduces_high_dense_score(self):
+        zero_hit_score = hybrid_nn_score([0.95, 0.0, 6.0, 1.0], 2)
+        one_hit_score = hybrid_nn_score([0.60, 1.0, 3.0, 1.0], 2)
+
+        self.assertLess(zero_hit_score, one_hit_score)
+
+    def test_generate_recommendations_ranks_by_hybrid_nn_score(self):
         candidates = [
-            CourseCandidate(1, "BCIT", "COMP 1000", "Intro", None, 3, {"cloud_architecture": 1}, 0.70),
-            CourseCandidate(2, "UBC", "CPSC 330", "Applied ML", None, 4, {"python": 1}, 0.90),
-            CourseCandidate(3, "SFU", "CMPT 276", "Software", None, 3, {"project_management": 1}, 0.80),
-            CourseCandidate(4, "BCIT", "COMP 1630", "SQL", None, 4, {}, 0.95),
+            CourseCandidate(1, "BCIT", "COMP 1000", "Intro", None, 3, {"cloud_architecture": 1}, 0.80),
+            CourseCandidate(
+                2,
+                "BCIT",
+                "COMP 2800",
+                "Projects",
+                None,
+                4,
+                {"cloud_architecture": 1, "project_management": 1},
+                0.60,
+                province="British Columbia",
+            ),
+            CourseCandidate(3, "UBC", "CPSC 330", "Applied ML", None, 4, {"python": 1}, 0.85),
+            CourseCandidate(4, "BCIT", "COMP 1630", "General", None, 4, {}, 0.95),
         ]
 
-        with (
-            patch("app.recommendations.predict_xgboost_scores", return_value=[0.40, 0.90, 0.70, 0.99]),
-            patch("app.recommendations.compute_shap_values", return_value=None),
-        ):
-            result = generate_recommendations(
-                ["AWS", "Python", "Agile"],
-                "British Columbia",
-                3,
-                self.taxonomy,
-                candidates,
-                model=object(),
-            )
+        result = generate_recommendations(
+            ["AWS", "Python", "Agile"],
+            "British Columbia",
+            3,
+            self.taxonomy,
+            candidates,
+        )
 
-        self.assertEqual(result["model_version"], "xgboost")
+        self.assertEqual(result["model_version"], "hybrid_nn_v1")
         self.assertFalse(result["used_rule_fallback"])
         self.assertEqual([item["course_id"] for item in result["recommendations"]], [2, 3, 1])
+        self.assertTrue(result["recommendations"][0]["ranking_signals"]["is_local"])
+        self.assertTrue(result["recommendations"][2]["ranking_signals"]["zero_hit_penalty_applied"] is False)
 
-    def test_generate_recommendations_uses_shap_explanation_for_model_results(self):
-        candidates = [
-            CourseCandidate(1, "BCIT", "COMP 2800", "Projects 2", None, 4, {"cloud_architecture": 1}, 0.84),
-        ]
-
-        with (
-            patch("app.recommendations.predict_xgboost_scores", return_value=[0.91]),
-            patch("app.recommendations.compute_shap_values", return_value=[[0.10, 0.45, 0.02, 0.01]]),
-        ):
-            result = generate_recommendations(
-                ["AWS", "Python"],
-                "British Columbia",
-                3,
-                self.taxonomy,
-                candidates,
-                model=object(),
-            )
-
-        recommendation = result["recommendations"][0]
-        self.assertEqual(recommendation["explanation_source"], "shap")
-        self.assertEqual(recommendation["top_shap_feature"], "feature_sparse_aws")
-        self.assertEqual(
-            recommendation["explanation"],
-            "This course precisely covers your urgent AWS skill.",
-        )
-        self.assertEqual(recommendation["shap_values"][0]["feature"], "feature_sparse_aws")
-
-    def test_rule_fallback_keeps_heuristic_explanation_without_shap_values(self):
+    def test_generate_recommendations_keeps_compatible_explanation_fields_without_shap(self):
         candidates = [
             CourseCandidate(1, "BCIT", "COMP 2800", "Projects 2", None, 4, {"cloud_architecture": 1}, 0.84),
         ]
 
         result = generate_recommendations(
-            ["AWS"],
+            ["AWS", "Python"],
             "British Columbia",
             3,
             self.taxonomy,
             candidates,
-            model=None,
         )
 
         recommendation = result["recommendations"][0]
-        self.assertEqual(result["model_version"], "rule_fallback")
         self.assertEqual(recommendation["explanation_source"], "heuristic")
         self.assertIsNone(recommendation["top_shap_feature"])
         self.assertEqual(recommendation["shap_values"], [])
+        self.assertIn("ranking_signals", recommendation)
+
+    def test_unknown_skill_does_not_change_known_skill_denominator(self):
+        candidates = [
+            CourseCandidate(1, "BCIT", "COMP 2800", "Projects 2", None, 4, {"cloud_architecture": 1}, 0.84),
+        ]
+
+        result = generate_recommendations(
+            ["TotallyMadeUpSkillXYZ", "AWS"],
+            "British Columbia",
+            3,
+            self.taxonomy,
+            candidates,
+        )
+
+        recommendation = result["recommendations"][0]
+        self.assertEqual(result["unknown_skill_gaps"], ["TotallyMadeUpSkillXYZ"])
+        self.assertEqual(recommendation["matched_skills"], ["AWS"])
+        self.assertEqual(recommendation["ranking_signals"]["skill_coverage"], 1.0)
 
     def test_missing_xgboost_model_path_uses_rule_fallback_loader(self):
         load_xgboost_model.cache_clear()
@@ -236,8 +255,8 @@ class CourseRecommendationApiTests(unittest.TestCase):
     @unittest.skipUnless(FASTAPI_AVAILABLE, "FastAPI is not installed in this local test environment")
     def test_api_returns_mocked_recommendations(self):
         mocked_response = {
-            "model_version": "rule_fallback",
-            "used_rule_fallback": True,
+            "model_version": "hybrid_nn_v1",
+            "used_rule_fallback": False,
             "unknown_skill_gaps": [],
             "recommendations": [
                 {"course_id": 1, "title": "A"},

@@ -50,6 +50,11 @@ DEFAULT_LIMIT = 3
 MAX_LIMIT = 10
 EMBEDDING_DIMENSION = 1024
 ZERO_HIT_PENALTY = 0.35
+DENSE_SIMILARITY_WEIGHT = 0.60
+SKILL_COVERAGE_WEIGHT = 0.30
+IS_LOCAL_WEIGHT = 0.07
+CREDIT_SCORE_WEIGHT = 0.03
+HYBRID_NN_MODEL_VERSION = "hybrid_nn_v1"
 FEATURE_NAMES = ("dense_similarity", "skill_hit_count", "credits", "is_local")
 SPARSE_SHAP_PREFIX = "feature_sparse_"
 SHAP_EXPLANATION_SOURCE = "shap"
@@ -288,6 +293,38 @@ def rule_fallback_score(feature_row: list[float], requested_skill_count: int) ->
     credit_score = max(0.0, min(float(credits) / 6.0, 1.0))
     score = (0.55 * dense_similarity) + (0.30 * coverage) + (0.10 * is_local) + (0.05 * credit_score)
     return clamp_score(score)
+
+
+def build_ranking_signals(feature_row: list[float], requested_skill_count: int):
+    dense_similarity, skill_hit_count, credits, is_local = feature_row
+    skill_coverage = skill_hit_count / requested_skill_count if requested_skill_count else 0.0
+    credit_score = max(0.0, min(float(credits) / 6.0, 1.0))
+    base_score = (
+        (DENSE_SIMILARITY_WEIGHT * dense_similarity)
+        + (SKILL_COVERAGE_WEIGHT * skill_coverage)
+        + (IS_LOCAL_WEIGHT * is_local)
+        + (CREDIT_SCORE_WEIGHT * credit_score)
+    )
+    zero_hit_penalty_applied = requested_skill_count > 0 and int(skill_hit_count) == 0
+    final_score = base_score * ZERO_HIT_PENALTY if zero_hit_penalty_applied else base_score
+
+    return {
+        "dense_similarity_weight": DENSE_SIMILARITY_WEIGHT,
+        "skill_coverage_weight": SKILL_COVERAGE_WEIGHT,
+        "is_local_weight": IS_LOCAL_WEIGHT,
+        "credit_score_weight": CREDIT_SCORE_WEIGHT,
+        "dense_similarity": round(clamp_score(dense_similarity), 4),
+        "skill_coverage": round(clamp_score(skill_coverage), 4),
+        "credit_score": round(clamp_score(credit_score), 4),
+        "is_local": int(is_local),
+        "zero_hit_penalty_applied": zero_hit_penalty_applied,
+        "base_score": round(clamp_score(base_score), 4),
+        "final_score": round(clamp_score(final_score), 4),
+    }
+
+
+def hybrid_nn_score(feature_row: list[float], requested_skill_count: int) -> float:
+    return build_ranking_signals(feature_row, requested_skill_count)["final_score"]
 
 
 def predict_xgboost_scores(model, feature_rows: list[list[float]]) -> list[float]:
@@ -628,20 +665,12 @@ def generate_recommendations(
 ):
     requested_skills, unknown_skill_gaps = normalize_skill_gaps(skill_gaps, taxonomy)
     feature_rows = [build_feature_row(candidate, requested_skills, preferred_location) for candidate in candidates]
-    scores, used_rule_fallback = score_feature_rows(model, feature_rows, len(requested_skills))
-    shap_value_rows = None if used_rule_fallback else compute_shap_values(model, feature_rows)
+    scores = [hybrid_nn_score(row, len(requested_skills)) for row in feature_rows]
 
     recommendations = []
     for index, (candidate, feature_row, score) in enumerate(zip(candidates, feature_rows, scores)):
         matched_skills, missing_skills = compute_skill_matches(candidate.sparse_features, requested_skills)
-        row_shap_values = shap_value_rows[index] if shap_value_rows else None
-        shap_contributions = build_shap_contributions(
-            row_shap_values,
-            requested_skills,
-            candidate.sparse_features,
-        )
-        shap_explanation = build_shap_explanation(shap_contributions)
-        top_shap_contribution = top_positive_shap_contribution(shap_contributions)
+        ranking_signals = build_ranking_signals(feature_row, len(requested_skills))
         recommendations.append(
             {
                 "course_id": candidate.course_id,
@@ -654,12 +683,11 @@ def generate_recommendations(
                 "skill_hit_count": int(feature_row[1]),
                 "matched_skills": matched_skills,
                 "missing_skills": missing_skills,
-                "explanation": shap_explanation or build_explanation(matched_skills, candidate.dense_similarity),
-                "explanation_source": (
-                    SHAP_EXPLANATION_SOURCE if shap_explanation else HEURISTIC_EXPLANATION_SOURCE
-                ),
-                "top_shap_feature": top_shap_contribution["feature"] if top_shap_contribution else None,
-                "shap_values": shap_contributions,
+                "explanation": build_explanation(matched_skills, candidate.dense_similarity),
+                "explanation_source": HEURISTIC_EXPLANATION_SOURCE,
+                "top_shap_feature": None,
+                "shap_values": [],
+                "ranking_signals": ranking_signals,
             }
         )
 
@@ -673,8 +701,8 @@ def generate_recommendations(
     )
 
     return {
-        "model_version": "rule_fallback" if used_rule_fallback else "xgboost",
-        "used_rule_fallback": used_rule_fallback,
+        "model_version": HYBRID_NN_MODEL_VERSION,
+        "used_rule_fallback": False,
         "unknown_skill_gaps": unknown_skill_gaps,
         "recommendations": recommendations[:limit],
     }
@@ -690,8 +718,7 @@ def build_course_recommendations(
     taxonomy = fetch_taxonomy(engine)
     query_embedding = encode_query_embedding(skill_gaps)
     candidates = fetch_course_candidates(engine, query_embedding, DEFAULT_RECALL_LIMIT)
-    model = get_ranker_model()
-    return generate_recommendations(skill_gaps, preferred_location, limit, taxonomy, candidates, model)
+    return generate_recommendations(skill_gaps, preferred_location, limit, taxonomy, candidates)
 
 
 @router.post("/career/course-recommendations")
