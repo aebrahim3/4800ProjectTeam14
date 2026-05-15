@@ -8,6 +8,8 @@ from app.recommendations import (
     TaxonomySkill,
     apply_zero_hit_penalty,
     build_feature_row,
+    build_shap_contributions,
+    build_shap_explanation,
     compute_skill_matches,
     generate_recommendations,
     get_ranker_model,
@@ -79,6 +81,42 @@ class CourseRecommendationLogicTests(unittest.TestCase):
         self.assertEqual(matched, ["AWS"])
         self.assertEqual(missing, ["Python", "Agile"])
 
+    def test_shap_sparse_contribution_maps_to_skill_feature_and_template(self):
+        requested = [
+            RequestedSkill("AWS", "Cloud Architecture", "cloud_architecture"),
+            RequestedSkill("Python", "Python", "python"),
+        ]
+
+        contributions = build_shap_contributions(
+            [0.10, 0.90, -0.02, 0.01],
+            requested,
+            {"cloud_architecture": 1, "python": 0},
+        )
+
+        self.assertEqual(contributions[0]["feature"], "feature_sparse_aws")
+        self.assertEqual(contributions[0]["source_feature"], "skill_hit_count")
+        self.assertEqual(contributions[0]["skill"], "AWS")
+        self.assertEqual(contributions[0]["value"], 0.9)
+        self.assertEqual(
+            build_shap_explanation(contributions),
+            "This course precisely covers your urgent AWS skill.",
+        )
+
+    def test_shap_dense_similarity_template_when_dense_is_top_driver(self):
+        requested = [RequestedSkill("AWS", "Cloud Architecture", "cloud_architecture")]
+
+        contributions = build_shap_contributions(
+            [0.80, 0.10, 0.00, 0.00],
+            requested,
+            {"cloud_architecture": 1},
+        )
+
+        self.assertEqual(contributions[0]["feature"], "dense_similarity")
+        self.assertEqual(
+            build_shap_explanation(contributions),
+            "This course's overall content strongly aligns with your target career.",
+        )
+
     def test_zero_sparse_hit_penalty_reduces_high_scores(self):
         self.assertAlmostEqual(apply_zero_hit_penalty(0.9, 0, 3), 0.315)
         self.assertEqual(apply_zero_hit_penalty(0.9, 1, 3), 0.9)
@@ -101,7 +139,10 @@ class CourseRecommendationLogicTests(unittest.TestCase):
             CourseCandidate(4, "BCIT", "COMP 1630", "SQL", None, 4, {}, 0.95),
         ]
 
-        with patch("app.recommendations.predict_xgboost_scores", return_value=[0.40, 0.90, 0.70, 0.99]):
+        with (
+            patch("app.recommendations.predict_xgboost_scores", return_value=[0.40, 0.90, 0.70, 0.99]),
+            patch("app.recommendations.compute_shap_values", return_value=None),
+        ):
             result = generate_recommendations(
                 ["AWS", "Python", "Agile"],
                 "British Columbia",
@@ -114,6 +155,53 @@ class CourseRecommendationLogicTests(unittest.TestCase):
         self.assertEqual(result["model_version"], "xgboost")
         self.assertFalse(result["used_rule_fallback"])
         self.assertEqual([item["course_id"] for item in result["recommendations"]], [2, 3, 1])
+
+    def test_generate_recommendations_uses_shap_explanation_for_model_results(self):
+        candidates = [
+            CourseCandidate(1, "BCIT", "COMP 2800", "Projects 2", None, 4, {"cloud_architecture": 1}, 0.84),
+        ]
+
+        with (
+            patch("app.recommendations.predict_xgboost_scores", return_value=[0.91]),
+            patch("app.recommendations.compute_shap_values", return_value=[[0.10, 0.45, 0.02, 0.01]]),
+        ):
+            result = generate_recommendations(
+                ["AWS", "Python"],
+                "British Columbia",
+                3,
+                self.taxonomy,
+                candidates,
+                model=object(),
+            )
+
+        recommendation = result["recommendations"][0]
+        self.assertEqual(recommendation["explanation_source"], "shap")
+        self.assertEqual(recommendation["top_shap_feature"], "feature_sparse_aws")
+        self.assertEqual(
+            recommendation["explanation"],
+            "This course precisely covers your urgent AWS skill.",
+        )
+        self.assertEqual(recommendation["shap_values"][0]["feature"], "feature_sparse_aws")
+
+    def test_rule_fallback_keeps_heuristic_explanation_without_shap_values(self):
+        candidates = [
+            CourseCandidate(1, "BCIT", "COMP 2800", "Projects 2", None, 4, {"cloud_architecture": 1}, 0.84),
+        ]
+
+        result = generate_recommendations(
+            ["AWS"],
+            "British Columbia",
+            3,
+            self.taxonomy,
+            candidates,
+            model=None,
+        )
+
+        recommendation = result["recommendations"][0]
+        self.assertEqual(result["model_version"], "rule_fallback")
+        self.assertEqual(recommendation["explanation_source"], "heuristic")
+        self.assertIsNone(recommendation["top_shap_feature"])
+        self.assertEqual(recommendation["shap_values"], [])
 
     def test_missing_xgboost_model_path_uses_rule_fallback_loader(self):
         load_xgboost_model.cache_clear()

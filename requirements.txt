@@ -11,3 +11,4 @@ pgvector>=0.3.0
 sentence-transformers>=3.0.0
 torch>=2.2.0
 xgboost>=2.0.0
+shap>=0.45.0

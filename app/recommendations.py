@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import math
 import os
@@ -43,6 +45,9 @@ MAX_LIMIT = 10
 EMBEDDING_DIMENSION = 1024
 ZERO_HIT_PENALTY = 0.35
 FEATURE_NAMES = ("dense_similarity", "skill_hit_count", "credits", "is_local")
+SPARSE_SHAP_PREFIX = "feature_sparse_"
+SHAP_EXPLANATION_SOURCE = "shap"
+HEURISTIC_EXPLANATION_SOURCE = "heuristic"
 
 
 class _NoopRouter:
@@ -212,15 +217,20 @@ def truthy_feature_value(value) -> bool:
 
 
 def compute_skill_matches(sparse_features, requested_skills: list[RequestedSkill]):
+    matched_skills, missing_skills = compute_requested_skill_matches(sparse_features, requested_skills)
+    return [skill.raw_label for skill in matched_skills], [skill.raw_label for skill in missing_skills]
+
+
+def compute_requested_skill_matches(sparse_features, requested_skills: list[RequestedSkill]):
     features = coerce_json_object(sparse_features)
     matched = []
     missing = []
 
     for skill in requested_skills:
         if truthy_feature_value(features.get(skill.feature_key)):
-            matched.append(skill.raw_label)
+            matched.append(skill)
         else:
-            missing.append(skill.raw_label)
+            missing.append(skill)
 
     return matched, missing
 
@@ -303,6 +313,130 @@ def score_feature_rows(model, feature_rows: list[list[float]], requested_skill_c
     for score, row in zip(raw_scores, feature_rows):
         scored.append(apply_zero_hit_penalty(score, int(row[1]), requested_skill_count))
     return scored, used_rule_fallback
+
+
+def normalize_shap_output(raw_shap_values, expected_rows: int, expected_features: int):
+    if raw_shap_values is None:
+        return None
+
+    try:
+        import numpy as np
+    except ImportError:
+        return None
+
+    values = getattr(raw_shap_values, "values", raw_shap_values)
+    try:
+        matrix = np.asarray(values, dtype=float)
+    except (TypeError, ValueError):
+        return None
+
+    if matrix.ndim == 3:
+        if matrix.shape[1] == expected_rows and matrix.shape[2] == expected_features:
+            matrix = matrix[-1]
+        elif matrix.shape[0] == expected_rows and matrix.shape[1] == expected_features:
+            matrix = matrix[:, :, -1]
+        else:
+            return None
+
+    if matrix.ndim == 1 and expected_rows == 1 and matrix.shape[0] == expected_features:
+        matrix = matrix.reshape(1, expected_features)
+
+    if matrix.ndim != 2 or matrix.shape != (expected_rows, expected_features):
+        return None
+    if not np.all(np.isfinite(matrix)):
+        return None
+
+    return matrix.tolist()
+
+
+def compute_shap_values(model, feature_rows: list[list[float]]):
+    if model is None or not feature_rows:
+        return None
+
+    try:
+        import numpy as np
+        import shap
+    except ImportError:
+        return None
+
+    try:
+        feature_matrix = np.asarray(feature_rows, dtype=float)
+        explainer = shap.TreeExplainer(model)
+        raw_shap_values = explainer.shap_values(feature_matrix)
+        return normalize_shap_output(raw_shap_values, len(feature_rows), len(FEATURE_NAMES))
+    except Exception:
+        return None
+
+
+def build_sparse_shap_feature_name(skill: RequestedSkill) -> str:
+    raw_key = normalize_feature_key(skill.raw_label)
+    return f"{SPARSE_SHAP_PREFIX}{raw_key or skill.feature_key}"
+
+
+def build_shap_contributions(
+    row_shap_values,
+    requested_skills: list[RequestedSkill],
+    sparse_features,
+):
+    if row_shap_values is None:
+        return []
+    if len(row_shap_values) != len(FEATURE_NAMES):
+        return []
+
+    matched_requested_skills, _ = compute_requested_skill_matches(sparse_features, requested_skills)
+    contributions = []
+
+    for feature_name, raw_value in zip(FEATURE_NAMES, row_shap_values):
+        value = float(raw_value)
+        if feature_name == "skill_hit_count" and matched_requested_skills:
+            shared_value = value / len(matched_requested_skills)
+            for skill in matched_requested_skills:
+                contributions.append(
+                    {
+                        "feature": build_sparse_shap_feature_name(skill),
+                        "source_feature": feature_name,
+                        "skill": skill.raw_label,
+                        "canonical_skill": skill.skill_name,
+                        "value": round(shared_value, 6),
+                    }
+                )
+            continue
+
+        contributions.append(
+            {
+                "feature": feature_name,
+                "source_feature": feature_name,
+                "value": round(value, 6),
+            }
+        )
+
+    return sorted(
+        contributions,
+        key=lambda item: (-abs(item["value"]), item["feature"]),
+    )
+
+
+def top_positive_shap_contribution(shap_contributions):
+    best = None
+    for item in shap_contributions:
+        if item["value"] <= 0:
+            continue
+        if best is None or item["value"] > best["value"]:
+            best = item
+    return best
+
+
+def build_shap_explanation(shap_contributions) -> str | None:
+    top_contribution = top_positive_shap_contribution(shap_contributions)
+    if top_contribution is None:
+        return None
+
+    feature_name = top_contribution["feature"]
+    if feature_name.startswith(SPARSE_SHAP_PREFIX) and top_contribution.get("skill"):
+        return f"This course precisely covers your urgent {top_contribution['skill']} skill."
+    if feature_name == "dense_similarity":
+        return "This course's overall content strongly aligns with your target career."
+    return None
 
 
 def build_query_text(skill_gaps: list[str]) -> str:
@@ -470,10 +604,19 @@ def generate_recommendations(
     requested_skills, unknown_skill_gaps = normalize_skill_gaps(skill_gaps, taxonomy)
     feature_rows = [build_feature_row(candidate, requested_skills, preferred_location) for candidate in candidates]
     scores, used_rule_fallback = score_feature_rows(model, feature_rows, len(requested_skills))
+    shap_value_rows = None if used_rule_fallback else compute_shap_values(model, feature_rows)
 
     recommendations = []
-    for candidate, feature_row, score in zip(candidates, feature_rows, scores):
+    for index, (candidate, feature_row, score) in enumerate(zip(candidates, feature_rows, scores)):
         matched_skills, missing_skills = compute_skill_matches(candidate.sparse_features, requested_skills)
+        row_shap_values = shap_value_rows[index] if shap_value_rows else None
+        shap_contributions = build_shap_contributions(
+            row_shap_values,
+            requested_skills,
+            candidate.sparse_features,
+        )
+        shap_explanation = build_shap_explanation(shap_contributions)
+        top_shap_contribution = top_positive_shap_contribution(shap_contributions)
         recommendations.append(
             {
                 "course_id": candidate.course_id,
@@ -486,7 +629,12 @@ def generate_recommendations(
                 "skill_hit_count": int(feature_row[1]),
                 "matched_skills": matched_skills,
                 "missing_skills": missing_skills,
-                "explanation": build_explanation(matched_skills, candidate.dense_similarity),
+                "explanation": shap_explanation or build_explanation(matched_skills, candidate.dense_similarity),
+                "explanation_source": (
+                    SHAP_EXPLANATION_SOURCE if shap_explanation else HEURISTIC_EXPLANATION_SOURCE
+                ),
+                "top_shap_feature": top_shap_contribution["feature"] if top_shap_contribution else None,
+                "shap_values": shap_contributions,
             }
         )
 

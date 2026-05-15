@@ -94,6 +94,14 @@ dense_similarity, skill_hit_count, credits, is_local
 
 If the model file is missing or cannot be loaded, the API uses a deterministic rule fallback and returns `model_version: "rule_fallback"`.
 
+When XGBoost scoring is available, the API also runs a SHAP explanation pass before returning recommendations. Each recommendation includes:
+
+- `explanation_source`: `shap` when the final explanation came from SHAP, otherwise `heuristic`
+- `top_shap_feature`: the strongest positive SHAP driver, such as `feature_sparse_aws` or `dense_similarity`
+- `shap_values`: sorted per-feature contribution records for frontend display
+
+The MVP ranker still uses the four-column feature contract above. The SHAP layer maps a positive `skill_hit_count` contribution back onto the matched sparse skill gaps, producing frontend-friendly feature names like `feature_sparse_aws`.
+
 Start the database and recommendation service:
 
 ```bash
