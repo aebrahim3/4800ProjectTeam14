@@ -7,7 +7,7 @@ import re
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 try:
     from fastapi import APIRouter, HTTPException, Request
@@ -68,7 +68,7 @@ class RecommendationServiceError(RuntimeError):
 class CourseRecommendationRequest(BaseModel):
     user_id: int
     skill_gaps: list[str]
-    preferred_location: str | None = None
+    preferred_location: Optional[str] = None
     limit: int = Field(default=DEFAULT_LIMIT, ge=1, le=MAX_LIMIT)
 
 
