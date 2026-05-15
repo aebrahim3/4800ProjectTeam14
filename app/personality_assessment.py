@@ -1,3 +1,4 @@
+from __future__ import annotations
 """
 Personality assessment logic for evaluating user profiles.
 

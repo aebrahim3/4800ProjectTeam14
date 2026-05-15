@@ -4,6 +4,9 @@ import tempfile
 import requests
 import pdfplumber
 import pytesseract
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from pdf2image import convert_from_bytes
 from fastapi import FastAPI, File, UploadFile, HTTPException
@@ -134,7 +137,7 @@ Return ONLY a valid JSON object with these exact fields:
         "description": "key responsibilities and achievements or null"
     }}
     ],
-    "activity_scores": []
+    "activity_scores": [
     {{
         "estimating_quantifiable_characteristics_score": "0-5 or null",
         "getting_information_score": "0-5 or null",
@@ -193,24 +196,24 @@ Return ONLY a valid JSON object with these exact fields:
     }}
     ],
     "personality_scores": 
-    {
-        "achievement_effort_score": "1-5 or null",
-        "adaptability_flexibility_score": "1-5 or null",
-        "stress_tolerance_score": "1-5 or null",
-        "initiative_score": "1-5 or null",
-        "analytical_thinking_score": "1-5 or null",
-        "attention_to_detail_score": "1-5 or null",
-        "innovation_score": "1-5 or null",
-        "concern_for_others_score": "1-5 or null",
-        "collaboration_score": "1-5 or null",
-        "service_orientation_score": "1-5 or null",
-        "integrity_score": "1-5 or null",
-        "social_orientation_score": "1-5 or null",
-        "independence_score": "1-5 or null",
-        "accountability_score": "1-5 or null",
-        "competitive_drive_score": "1-5 or null",
-        "charisma_score": "1-5 or null"
-    },
+    {{
+        "achievement_effort_score": "TBD",
+        "adaptability_flexibility_score": "TBD",
+        "stress_tolerance_score": "TBD",
+        "initiative_score": "TBD",
+        "analytical_thinking_score": "TBD",
+        "attention_to_detail_score": "TBD",
+        "innovation_score": "TBD",
+        "concern_for_others_score": "TBD",
+        "collaboration_score": "TBD",
+        "service_orientation_score": "TBD",
+        "integrity_score": "TBD",
+        "social_orientation_score": "TBD",
+        "independence_score": "TBD",
+        "accountability_score": "TBD",
+        "competitive_drive_score": "TBD",
+        "charisma_score": "TBD"
+    }},
     "volunteering": [
     {{
         "organization": "organization name or null",
@@ -266,7 +269,7 @@ Resume:
         json={
             "model": LLM_MODEL,
             "messages": [{"role": "user", "content": prompt}],
-            "max_tokens": 4000,
+            "max_tokens": 3000,
             "temperature": 0,
         },
         timeout=60,
