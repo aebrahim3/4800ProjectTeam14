@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import math
 import os
 import re
@@ -32,10 +33,15 @@ except ImportError:
 
 try:
     from sqlalchemy import text
+    from sqlalchemy.exc import SQLAlchemyError
 except ImportError:
+    SQLAlchemyError = Exception
+
     def text(query):
         return query
 
+
+logger = logging.getLogger(__name__)
 
 DEFAULT_MODEL_NAME = "BAAI/bge-large-en-v1.5"
 DEFAULT_MODEL_PATH = "models/course_ranker.json"
@@ -466,7 +472,13 @@ def load_embedding_model(model_name: str = DEFAULT_MODEL_NAME):
         raise RecommendationServiceError(
             "Install sentence-transformers and torch to encode recommendation queries."
         ) from exc
-    return SentenceTransformer(model_name)
+    try:
+        return SentenceTransformer(model_name)
+    except Exception as exc:
+        raise RecommendationServiceError(
+            f"Failed to load embedding model {model_name}. "
+            "Check network/model cache availability inside the recommender container."
+        ) from exc
 
 
 def encode_query_embedding(skill_gaps: list[str], model_name: str = DEFAULT_MODEL_NAME) -> list[float]:
@@ -510,8 +522,14 @@ def fetch_taxonomy(engine) -> list[TaxonomySkill]:
         ORDER BY skill_name, id
         """
     )
-    with engine.connect() as conn:
-        rows = conn.execute(query).mappings().all()
+    try:
+        with engine.connect() as conn:
+            rows = conn.execute(query).mappings().all()
+    except SQLAlchemyError as exc:
+        raise RecommendationServiceError(
+            "Failed to load skills_taxonomy from the database. "
+            "Check DATABASE_URL and run the latest migrations."
+        ) from exc
     return [build_taxonomy_skill(row) for row in rows]
 
 
@@ -559,14 +577,21 @@ def fetch_course_candidates(engine, query_embedding: list[float], recall_limit: 
         LIMIT :recall_limit
         """
     )
-    with engine.connect() as conn:
-        rows = conn.execute(
-            query,
-            {
-                "query_embedding": format_pgvector(query_embedding),
-                "recall_limit": int(recall_limit),
-            },
-        ).mappings().all()
+    try:
+        with engine.connect() as conn:
+            rows = conn.execute(
+                query,
+                {
+                    "query_embedding": format_pgvector(query_embedding),
+                    "recall_limit": int(recall_limit),
+                },
+            ).mappings().all()
+    except SQLAlchemyError as exc:
+        raise RecommendationServiceError(
+            "Failed to recall course candidates. "
+            "Check that courses.embedding is vector(1024), pgvector is enabled, "
+            "and course feature preprocessing has been run."
+        ) from exc
     return [row_to_candidate(row) for row in rows]
 
 
@@ -685,3 +710,9 @@ async def recommend_courses(payload: CourseRecommendationRequest, request: Reque
         )
     except RecommendationServiceError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("Unexpected course recommendation failure")
+        raise HTTPException(
+            status_code=503,
+            detail="Unexpected course recommendation failure. Check recommender container logs.",
+        ) from exc

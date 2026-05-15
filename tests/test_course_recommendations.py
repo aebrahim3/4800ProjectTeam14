@@ -1,9 +1,11 @@
 import os
+import importlib.util
 import unittest
 from unittest.mock import patch
 
 from app.recommendations import (
     CourseCandidate,
+    RecommendationServiceError,
     RequestedSkill,
     TaxonomySkill,
     apply_zero_hit_penalty,
@@ -13,6 +15,7 @@ from app.recommendations import (
     compute_skill_matches,
     generate_recommendations,
     get_ranker_model,
+    load_embedding_model,
     load_xgboost_model,
     normalize_skill_gaps,
     rule_fallback_score,
@@ -207,6 +210,15 @@ class CourseRecommendationLogicTests(unittest.TestCase):
         load_xgboost_model.cache_clear()
         with patch.dict(os.environ, {"COURSE_RANKER_MODEL_PATH": "/tmp/does-not-exist-course-ranker.json"}):
             self.assertIsNone(get_ranker_model())
+
+    def test_embedding_model_load_failure_has_actionable_error(self):
+        if importlib.util.find_spec("sentence_transformers") is None:
+            self.skipTest("sentence-transformers is not installed in this local test environment")
+        load_embedding_model.cache_clear()
+        with patch("sentence_transformers.SentenceTransformer", side_effect=OSError("offline")):
+            with self.assertRaisesRegex(RecommendationServiceError, "Failed to load embedding model"):
+                load_embedding_model("BAAI/bge-large-en-v1.5")
+        load_embedding_model.cache_clear()
 
 
 class CourseRecommendationApiTests(unittest.TestCase):
