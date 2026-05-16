@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 
 app = FastAPI(
     title="Matching Service API",
@@ -100,3 +101,18 @@ def profile_to_vector(profile: dict) -> list[float]:
         vector.append(float(raw))
 
     return vector
+
+
+# this class is used to validate the incoming JSON request body for the /vectorize endpoint
+class ProfileRequest(BaseModel):
+    profile: dict
+
+# This endpoint receives a profile JSON, converts it to a vector, and returns the vector
+@app.post("/vectorize")
+def vectorize(request: ProfileRequest):
+    vector = profile_to_vector(request.profile)
+    return {"vector": vector}
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
