@@ -70,22 +70,19 @@ def profile_to_vector(profile: dict) -> list[float]:
     ]
 
     personality_fields = [
-        "achievement_effort_score",
-        "adaptability_flexibility_score",
-        "stress_tolerance_score",
-        "initiative_score",
+        "active_learning_score",
+        "adaptability_score",
         "analytical_thinking_score",
         "attention_to_detail_score",
-        "innovation_score",
+        "creativity_score",
         "concern_for_others_score",
         "collaboration_score",
-        "service_orientation_score",
-        "integrity_score",
-        "social_orientation_score",
         "independence_score",
-        "accountability_score",
-        "competitive_drive_score",
-        "charisma_score",
+        "innovativeness_score",
+        "leadership_score",
+        "social_orientation_score",
+        "service_orientation_score",
+        "stress_tolerance_score",
     ]
 
     # Activity Scores

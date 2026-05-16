@@ -197,23 +197,20 @@ Return ONLY a valid JSON object with these exact fields:
     ],
     "personality_scores": 
     {{
-        "achievement_effort_score": "TBD",
-        "adaptability_flexibility_score": "TBD",
-        "stress_tolerance_score": "TBD",
-        "initiative_score": "TBD",
-        "analytical_thinking_score": "TBD",
-        "attention_to_detail_score": "TBD",
-        "innovation_score": "TBD",
-        "concern_for_others_score": "TBD",
-        "collaboration_score": "TBD",
-        "service_orientation_score": "TBD",
-        "integrity_score": "TBD",
-        "social_orientation_score": "TBD",
-        "independence_score": "TBD",
-        "accountability_score": "TBD",
-        "competitive_drive_score": "TBD",
-        "charisma_score": "TBD"
-    }},
+    "active_learning_score": "TBD",
+    "adaptability_score": "TBD",
+    "analytical_thinking_score": "TBD",
+    "attention_to_detail_score": "TBD",
+    "creativity_score": "TBD",
+    "concern_for_others_score": "TBD",
+    "collaboration_score": "TBD",
+    "independence_score": "TBD",
+    "innovativeness_score": "TBD",
+    "leadership_score": "TBD",
+    "social_orientation_score": "TBD",
+    "service_orientation_score": "TBD",
+    "stress_tolerance_score": "TBD"
+}},
     "volunteering": [
     {{
         "organization": "organization name or null",
