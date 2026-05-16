@@ -139,46 +139,46 @@ Return ONLY a valid JSON object with these exact fields:
     ],
     "activity_scores": [
     {{
-        "estimating_quantifiable_characteristics_score": "0-5 or null",
-        "getting_information_score": "0-5 or null",
-        "identifying_objects_actions_and_events_score": "0-5 or null",
-        "inspecting_equipment_structures_or_material_score": "0-5 or null",
-        "monitoring_processes_materials_or_surroundings_score": "0-5 or null",
-        "controlling_machines_and_processes_score": "0-5 or null",
-        "developing_technical_instructions_score": "0-5 or null",
-        "clerical_activities_score": "0-5 or null",
-        "electronic_maintenance_score": "0-5 or null",
-        "handling_and_moving_objects_score": "0-5 or null",
-        "interacting_with_computers_score": "0-5 or null",
-        "managing_resources_score": "0-5 or null",
-        "mechanical_maintenance_score": "0-5 or null",
-        "operating_vehicles_mechanized_devices_or_equipment_score": "0-5 or null",
-        "performing_general_physical_activities_score": "0-5 or null",
-        "processing_information_score": "0-5 or null",
-        "analyzing_data_or_information_score": "0-5 or null",
-        "developing_objectives_and_strategies_score": "0-5 or null",
-        "evaluating_info_to_determine_compliance_with_standards_score": "0-5 or null",
-        "judging_quality_score": "0-5 or null",
-        "making_decisions_score": "0-5 or null",
-        "planning_and_organizing_score": "0-5 or null",
-        "scheduling_work_and_activities_score": "0-5 or null",
-        "thinking_creatively_score": "0-5 or null",
-        "using_new_relevant_knowledge_score": "0-5 or null",
-        "assisting_and_caring_for_others_score": "0-5 or null",
-        "coaching_and_developing_others_score": "0-5 or null",
-        "communicating_with_persons_outside_organization_score": "0-5 or null",
-        "communicating_with_coworkers_score": "0-5 or null",
-        "coordinating_work_and_activities_of_others_score": "0-5 or null",
-        "establishing_and_maintaining_interpersonal_relationships_score": "0-5 or null",
-        "interpreting_meaning_of_information_for_others_score": "0-5 or null",
-        "performing_for_or_working_directly_with_public_score": "0-5 or null",
-        "providing_consultation_and_advice_score": "0-5 or null",
-        "resolving_conflicts_and_negotiating_with_others_score": "0-5 or null",
-        "selling_or_influencing_others_score": "0-5 or null",
-        "staffing_score": "0-5 or null",
-        "supervising_subordinates_score": "0-5 or null",
-        "team_building_score": "0-5 or null",
-        "training_and_teaching_score": "0-5 or null"
+        "estimating_quantifiable_characteristics_score": "1-5 or null",
+        "getting_information_score": "1-5 or null",
+        "identifying_objects_actions_and_events_score": "1-5 or null",
+        "inspecting_equipment_structures_or_material_score": "1-5 or null",
+        "monitoring_processes_materials_or_surroundings_score": "1-5 or null",
+        "controlling_machines_and_processes_score": "1-5 or null",
+        "developing_technical_instructions_score": "1-5 or null",
+        "clerical_activities_score": "1-5 or null",
+        "electronic_maintenance_score": "1-5 or null",
+        "handling_and_moving_objects_score": "1-5 or null",
+        "interacting_with_computers_score": "1-5 or null",
+        "managing_resources_score": "1-5 or null",
+        "mechanical_maintenance_score": "1-5 or null",
+        "operating_vehicles_mechanized_devices_or_equipment_score": "1-5 or null",
+        "performing_general_physical_activities_score": "1-5 or null",
+        "processing_information_score": "1-5 or null",
+        "analyzing_data_or_information_score": "1-5 or null",
+        "developing_objectives_and_strategies_score": "1-5 or null",
+        "evaluating_info_to_determine_compliance_with_standards_score": "1-5 or null",
+        "judging_quality_score": "1-5 or null",
+        "making_decisions_score": "1-5 or null",
+        "planning_and_organizing_score": "1-5 or null",
+        "scheduling_work_and_activities_score": "1-5 or null",
+        "thinking_creatively_score": "1-5 or null",
+        "using_new_relevant_knowledge_score": "1-5 or null",
+        "assisting_and_caring_for_others_score": "1-5 or null",
+        "coaching_and_developing_others_score": "1-5 or null",
+        "communicating_with_persons_outside_organization_score": "1-5 or null",
+        "communicating_with_coworkers_score": "1-5 or null",
+        "coordinating_work_and_activities_of_others_score": "1-5 or null",
+        "establishing_and_maintaining_interpersonal_relationships_score": "1-5 or null",
+        "interpreting_meaning_of_information_for_others_score": "1-5 or null",
+        "performing_for_or_working_directly_with_public_score": "1-5 or null",
+        "providing_consultation_and_advice_score": "1-5 or null",
+        "resolving_conflicts_and_negotiating_with_others_score": "1-5 or null",
+        "selling_or_influencing_others_score": "1-5 or null",
+        "staffing_score": "1-5 or null",
+        "supervising_subordinates_score": "1-5 or null",
+        "team_building_score": "1-5 or null",
+        "training_and_teaching_score": "1-5 or null"
     }}
      ],
     "education": [
@@ -245,9 +245,8 @@ Rules:
 - Return ONLY the JSON object, no preamble, no explanation, no markdown backticks
 - If a field has no information, use null for strings or empty array [] for lists
 - Be thorough - extract everything career-relevant
-- For activity_scores, score each activity from 0 to 5 based on evidence found in the resume:
-    0 = no evidence
-    1 = minimal evidence
+- For activity_scores, score each activity from 1 to 5 based on evidence found in the resume:
+    1 = minimal or no evidence
     2 = some evidence
     3 = moderate evidence
     4 = strong evidence
