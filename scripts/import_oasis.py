@@ -36,7 +36,8 @@ DIMS = {
     'work_context': 66,
     'knowledge': 44,
     'personal_attributes': 13,
-    'work_activities': 39
+    'work_activities': 39,
+    'interests': 6
 }
 
 def process_numerical_file(filepath):
@@ -120,24 +121,42 @@ def main():
         code = str(row['code'])
         title = str(row['title']) if 'title' in row and not pd.isna(row['title']) else 'Unknown Title'
 
-        vectors = {}
-        combined_vector = []
-        domain_order = ['abilities', 'skills', 'work_context', 'knowledge', 'personal_attributes', 'work_activities']
-
-        for domain in domain_order:
-            vec_col = f'{domain}_vector'
-            if vec_col in row and isinstance(row[vec_col], list):
-                vec = row[vec_col]
-            else:
-                vec = [0.0] * DIMS[domain]
-            vectors[domain] = vec
-            combined_vector.extend(vec)
-
         core_competencies = row.get('core_competencies_data', {})
         if pd.isna(core_competencies): core_competencies = {}
 
-        interests = row.get('interests_data', {})
-        if pd.isna(interests): interests = {}
+        interests_data = row.get('interests_data', {})
+        if pd.isna(interests_data): interests_data = {}
+
+        # Parse interests into a 6D vector [R, I, A, S, E, C]
+        riasec_map = {'R': 0, 'I': 1, 'A': 2, 'S': 3, 'E': 4, 'C': 5}
+        interests_vec = [0.0] * 6
+        
+        sorted_interest_keys = sorted([k for k in interests_data.keys() if 'Holland' in str(k) or 'Code' in str(k)])
+        weights = [3.0, 2.0, 1.0]
+        
+        for i, key in enumerate(sorted_interest_keys):
+            if i >= 3: break
+            val = str(interests_data[key]).upper().strip()
+            if val in riasec_map:
+                interests_vec[riasec_map[val]] = weights[i]
+                
+        vectors['interests'] = interests_vec
+
+
+        combined_vector = []
+        domain_order = ['abilities', 'skills', 'work_context', 'knowledge', 'personal_attributes', 'work_activities', 'interests']
+
+        for domain in domain_order:
+            if domain == 'interests':
+                vec = vectors['interests']
+            else:
+                vec_col = f'{domain}_vector'
+                if vec_col in row and isinstance(row[vec_col], list):
+                    vec = row[vec_col]
+                else:
+                    vec = [0.0] * DIMS[domain]
+                vectors[domain] = vec
+            combined_vector.extend(vec)
 
         # Insert into oasis_occupations
         cur.execute("""
@@ -155,8 +174,8 @@ def main():
                 oasis_code, 
                 abilities_vector, skills_vector, work_context_vector,
                 knowledge_vector, personal_attributes_vector, work_activities_vector,
-                combined_vector
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                interests_vector, combined_vector
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (oasis_code) DO UPDATE SET
                 abilities_vector = EXCLUDED.abilities_vector,
                 skills_vector = EXCLUDED.skills_vector,
@@ -164,6 +183,7 @@ def main():
                 knowledge_vector = EXCLUDED.knowledge_vector,
                 personal_attributes_vector = EXCLUDED.personal_attributes_vector,
                 work_activities_vector = EXCLUDED.work_activities_vector,
+                interests_vector = EXCLUDED.interests_vector,
                 combined_vector = EXCLUDED.combined_vector
         """, (
             code,
@@ -173,6 +193,7 @@ def main():
             json.dumps(vectors['knowledge']),
             json.dumps(vectors['personal_attributes']),
             json.dumps(vectors['work_activities']),
+            json.dumps(vectors['interests']),
             json.dumps(combined_vector)
         ))
         

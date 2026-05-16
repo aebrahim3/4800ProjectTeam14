@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS oasis_occupations (
 -- 3. Create vectors table for different domains
 -- The combined vector is sized to hold all the numerical dimensions:
 -- Abilities (52) + Skills (33) + Work Context (66)
--- + Knowledge (44) + Personal Attributes (13) + Work Activities (39) = 247
+-- + Knowledge (44) + Personal Attributes (13) + Work Activities (39) + Interests (6) = 253
 CREATE TABLE IF NOT EXISTS oasis_occupation_vectors (
     oasis_code VARCHAR(20) PRIMARY KEY REFERENCES oasis_occupations(oasis_code),
     abilities_vector VECTOR(52),
@@ -26,7 +26,8 @@ CREATE TABLE IF NOT EXISTS oasis_occupation_vectors (
     knowledge_vector VECTOR(44),
     personal_attributes_vector VECTOR(13),
     work_activities_vector VECTOR(39),
-    combined_vector VECTOR(247),
+    interests_vector VECTOR(6),
+    combined_vector VECTOR(253),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
