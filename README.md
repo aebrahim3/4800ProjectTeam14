@@ -132,6 +132,8 @@ Run the multi-case API smoke test:
 python scripts/test_course_recommendation_api.py
 ```
 
+For detailed test cases, expected outputs, and troubleshooting steps, see `docs/course_recommendation_testing.md`.
+
 To regenerate a scraped catalog snapshot from the allowlisted official pages:
 
 ```bash
