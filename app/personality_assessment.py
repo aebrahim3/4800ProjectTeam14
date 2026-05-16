@@ -9,22 +9,20 @@ FastAPI service that:
 2. Accepts user responses and returns scored JSON (POST /assess)
 
 Traits mapped to OaSIS Personal Attributes (1-5 scale):
-- Achievement/Effort
-- Adaptability/Flexibility
-- Stress Tolerance
-- Initiative
+- Active Learning
+- Adaptability
 - Analytical Thinking
 - Attention to Detail
-- Innovation
+- Creativity 
 - Concern for Others
 - Collaboration
-- Service Orientation
-- Integrity
-- Social Orientation
 - Independence
-- Accountability
-- Competitive Drive
-- Charisma
+- Innovativeness
+- Leadership
+- Social Orientation
+- Service Orientation
+- Stress Tolerance
+
 
 Run with:
 uvicorn personality_assessment:app --reload --port 8003
@@ -62,309 +60,282 @@ LIKERT_SCALE = {
 # "negative" = lower trait score
 # ============================
 QUESTIONS = [
-     # Achievement / Effort
+    # Active Learning
     {
         "id": 1,
-        "trait": "achievement_effort",
-        "text": "I set high goals for myself and work hard to achieve them.",
+        "trait": "active_learning",
+        "text": "I actively seek out new information to improve my skills and knowledge.",
         "direction": "positive",
     },
     {
         "id": 2,
-        "trait": "achievement_effort",
-        "text": "I persist through challenges rather than giving up when things get difficult.",
+        "trait": "active_learning",
+        "text": "I look for opportunities to learn from new experiences and challenges.",
         "direction": "positive",
     },
     {
         "id": 3,
-        "trait": "achievement_effort",
-        "text": "I often settle for doing just enough to get by.",
+        "trait": "active_learning",
+        "text": "I prefer to stick with what I already know rather than learning new things.",
         "direction": "negative",
     },
- 
-    # Adaptability / Flexibility
+
+    # Adaptability
     {
         "id": 4,
-        "trait": "adaptability_flexibility",
+        "trait": "adaptability",
         "text": "I adjust easily when plans change unexpectedly.",
         "direction": "positive",
     },
     {
         "id": 5,
-        "trait": "adaptability_flexibility",
+        "trait": "adaptability",
         "text": "I am comfortable working in environments where things change frequently.",
         "direction": "positive",
     },
     {
         "id": 6,
-        "trait": "adaptability_flexibility",
+        "trait": "adaptability",
         "text": "I find it difficult to change my approach once I have decided on a plan.",
         "direction": "negative",
     },
- 
-    # Stress Tolerance
-    {
-        "id": 7,
-        "trait": "stress_tolerance",
-        "text": "I remain calm and focused when working under pressure or tight deadlines.",
-        "direction": "positive",
-    },
-    {
-        "id": 8,
-        "trait": "stress_tolerance",
-        "text": "I recover quickly after facing setbacks or stressful situations.",
-        "direction": "positive",
-    },
-    {
-        "id": 9,
-        "trait": "stress_tolerance",
-        "text": "Stressful situations make it hard for me to think clearly.",
-        "direction": "negative",
-    },
- 
-    # Initiative
-    {
-        "id": 10,
-        "trait": "initiative",
-        "text": "I often take action without being asked when I see something that needs to be done.",
-        "direction": "positive",
-    },
-    {
-        "id": 11,
-        "trait": "initiative",
-        "text": "I look for opportunities to improve things even when no one asks me to.",
-        "direction": "positive",
-    },
-    {
-        "id": 12,
-        "trait": "initiative",
-        "text": "I prefer to wait for instructions before starting a new task.",
-        "direction": "negative",
-    },
- 
+
     # Analytical Thinking
     {
-        "id": 13,
+        "id": 7,
         "trait": "analytical_thinking",
         "text": "I enjoy breaking down complex problems into smaller parts to find a solution.",
         "direction": "positive",
     },
     {
-        "id": 14,
+        "id": 8,
         "trait": "analytical_thinking",
         "text": "I use logic and evidence to evaluate information before making decisions.",
         "direction": "positive",
     },
     {
-        "id": 15,
+        "id": 9,
         "trait": "analytical_thinking",
         "text": "I tend to go with my gut feeling rather than analyzing a situation thoroughly.",
         "direction": "negative",
     },
- 
+
     # Attention to Detail
     {
-        "id": 16,
+        "id": 10,
         "trait": "attention_to_detail",
         "text": "I carefully check my work to make sure it is accurate and error-free.",
         "direction": "positive",
     },
     {
-        "id": 17,
+        "id": 11,
         "trait": "attention_to_detail",
         "text": "I notice small details that others often overlook.",
         "direction": "positive",
     },
     {
-        "id": 18,
+        "id": 12,
         "trait": "attention_to_detail",
         "text": "I sometimes submit work without thoroughly reviewing it.",
         "direction": "negative",
     },
- 
-    # Innovation
+
+    # Creativity
     {
-        "id": 19,
-        "trait": "innovation",
+        "id": 13,
+        "trait": "creativity",
         "text": "I enjoy coming up with new and creative ideas to solve problems.",
         "direction": "positive",
     },
     {
-        "id": 20,
-        "trait": "innovation",
+        "id": 14,
+        "trait": "creativity",
         "text": "I often think of unconventional approaches that others have not considered.",
         "direction": "positive",
     },
     {
-        "id": 21,
-        "trait": "innovation",
+        "id": 15,
+        "trait": "creativity",
         "text": "I prefer proven methods over trying something new and unproven.",
         "direction": "negative",
     },
- 
+
     # Concern for Others
     {
-        "id": 22,
+        "id": 16,
         "trait": "concern_for_others",
         "text": "I am genuinely interested in the wellbeing of the people around me.",
         "direction": "positive",
     },
     {
-        "id": 23,
+        "id": 17,
         "trait": "concern_for_others",
         "text": "I notice when others are struggling and offer help without being asked.",
         "direction": "positive",
     },
- 
+    {
+        "id": 18,
+        "trait": "concern_for_others",
+        "text": "I tend to focus on my own tasks without paying much attention to how others are doing.",
+        "direction": "negative",
+    },
+
     # Collaboration
     {
-        "id": 24,
+        "id": 19,
         "trait": "collaboration",
         "text": "I work effectively with others to achieve shared goals.",
         "direction": "positive",
     },
     {
-        "id": 25,
+        "id": 20,
         "trait": "collaboration",
         "text": "I actively contribute to group discussions and make sure everyone's voice is heard.",
         "direction": "positive",
     },
     {
-        "id": 26,
+        "id": 21,
         "trait": "collaboration",
         "text": "I find it easier to work alone than in a team.",
         "direction": "negative",
     },
- 
-    # Service Orientation
-    {
-        "id": 27,
-        "trait": "service_orientation",
-        "text": "I find satisfaction in helping others accomplish their goals.",
-        "direction": "positive",
-    },
-    {
-        "id": 28,
-        "trait": "service_orientation",
-        "text": "I go out of my way to make sure others have what they need.",
-        "direction": "positive",
-    },
- 
-    # Integrity
-    {
-        "id": 29,
-        "trait": "integrity",
-        "text": "I am honest even when it is not in my best interest.",
-        "direction": "positive",
-    },
-    {
-        "id": 30,
-        "trait": "integrity",
-        "text": "I follow through on my commitments even when it is inconvenient.",
-        "direction": "positive",
-    },
-    {
-        "id": 31,
-        "trait": "integrity",
-        "text": "I have bent the rules when I thought no one would notice.",
-        "direction": "negative",
-    },
- 
-    # Social Orientation
-    {
-        "id": 32,
-        "trait": "social_orientation",
-        "text": "I enjoy working in environments where I interact with many different people.",
-        "direction": "positive",
-    },
-    {
-        "id": 33,
-        "trait": "social_orientation",
-        "text": "I find energy in social interactions and connecting with new people.",
-        "direction": "positive",
-    },
- 
+
     # Independence
     {
-        "id": 34,
+        "id": 22,
         "trait": "independence",
         "text": "I prefer to figure things out on my own rather than asking for help.",
         "direction": "positive",
     },
     {
-        "id": 35,
+        "id": 23,
         "trait": "independence",
         "text": "I am comfortable making decisions without needing approval from others.",
         "direction": "positive",
     },
- 
-    # Accountability
     {
-        "id": 36,
-        "trait": "accountability",
-        "text": "I take responsibility for my mistakes rather than blaming others.",
-        "direction": "positive",
-    },
-    {
-        "id": 37,
-        "trait": "accountability",
-        "text": "I follow through on my responsibilities even when no one is watching.",
-        "direction": "positive",
-    },
-    {
-        "id": 38,
-        "trait": "accountability",
-        "text": "I tend to make excuses when things do not go as planned.",
+        "id": 24,
+        "trait": "independence",
+        "text": "I rely heavily on others to guide me when faced with new situations.",
         "direction": "negative",
     },
- 
-    # Competitive Drive
+
+    # Innovativeness
     {
-        "id": 39,
-        "trait": "competitive_drive",
-        "text": "I am motivated by competing with others and being the best at what I do.",
+        "id": 25,
+        "trait": "innovativeness",
+        "text": "I enjoy experimenting with new approaches even when the outcome is uncertain.",
         "direction": "positive",
     },
     {
-        "id": 40,
-        "trait": "competitive_drive",
-        "text": "I push myself harder when I know others are performing at a high level.",
+        "id": 26,
+        "trait": "innovativeness",
+        "text": "I look for ways to improve existing processes rather than accepting the status quo.",
         "direction": "positive",
     },
- 
-    # Charisma
     {
-        "id": 41,
-        "trait": "charisma",
+        "id": 27,
+        "trait": "innovativeness",
+        "text": "I am satisfied with how things are done and rarely see a need to change them.",
+        "direction": "negative",
+    },
+
+    # Leadership
+    {
+        "id": 28,
+        "trait": "leadership",
         "text": "I am able to inspire and motivate others through my words and actions.",
         "direction": "positive",
     },
     {
-        "id": 42,
-        "trait": "charisma",
+        "id": 29,
+        "trait": "leadership",
         "text": "People naturally look to me for direction in group situations.",
         "direction": "positive",
     },
+    {
+        "id": 30,
+        "trait": "leadership",
+        "text": "I prefer to follow rather than take charge in group settings.",
+        "direction": "negative",
+    },
+
+    # Social Orientation
+    {
+        "id": 31,
+        "trait": "social_orientation",
+        "text": "I enjoy working in environments where I interact with many different people.",
+        "direction": "positive",
+    },
+    {
+        "id": 32,
+        "trait": "social_orientation",
+        "text": "I find energy in social interactions and connecting with new people.",
+        "direction": "positive",
+    },
+    {
+        "id": 33,
+        "trait": "social_orientation",
+        "text": "I find social interactions draining and prefer working alone.",
+        "direction": "negative",
+    },
+
+    # Service Orientation
+    {
+        "id": 34,
+        "trait": "service_orientation",
+        "text": "I find satisfaction in helping others accomplish their goals.",
+        "direction": "positive",
+    },
+    {
+        "id": 35,
+        "trait": "service_orientation",
+        "text": "I go out of my way to make sure others have what they need.",
+        "direction": "positive",
+    },
+    {
+        "id": 36,
+        "trait": "service_orientation",
+        "text": "I prefer tasks that benefit myself over tasks that involve helping others.",
+        "direction": "negative",
+    },
+
+    # Stress Tolerance
+    {
+        "id": 37,
+        "trait": "stress_tolerance",
+        "text": "I remain calm and focused when working under pressure or tight deadlines.",
+        "direction": "positive",
+    },
+    {
+        "id": 38,
+        "trait": "stress_tolerance",
+        "text": "I recover quickly after facing setbacks or stressful situations.",
+        "direction": "positive",
+    },
+    {
+        "id": 39,
+        "trait": "stress_tolerance",
+        "text": "Stressful situations make it hard for me to think clearly.",
+        "direction": "negative",
+    },
 ]
 
-# Map trait names to their JSON fields
+# Map trait names to their OaSIS-aligned JSON fields
 TRAIT_FIELD_MAP = {
-    "achievement_effort": "achievement_effort_score",
-    "adaptability_flexibility": "adaptability_flexibility_score",
-    "stress_tolerance": "stress_tolerance_score",
-    "initiative": "initiative_score",
+    "active_learning": "active_learning_score",
+    "adaptability": "adaptability_score",
     "analytical_thinking": "analytical_thinking_score",
     "attention_to_detail": "attention_to_detail_score",
-    "innovation": "innovation_score",
+    "creativity": "creativity_score",
     "concern_for_others": "concern_for_others_score",
     "collaboration": "collaboration_score",
-    "service_orientation": "service_orientation_score",
-    "integrity": "integrity_score",
-    "social_orientation": "social_orientation_score",
     "independence": "independence_score",
-    "accountability": "accountability_score",
-    "competitive_drive": "competitive_drive_score",
-    "charisma": "charisma_score"
+    "innovativeness": "innovativeness_score",
+    "leadership": "leadership_score",
+    "social_orientation": "social_orientation_score",
+    "service_orientation": "service_orientation_score",
+    "stress_tolerance": "stress_tolerance_score",
 }
 
 # =============================
